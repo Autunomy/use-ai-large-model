@@ -36,8 +36,8 @@ public class SSEUtils {
         }
 
         try {
-            // 设置超时时间，0表示不过期。默认30秒
-            SseEmitter sseEmitter = new SseEmitter(30 * 1000L);
+            // 设置超时时间，0表示不过期
+            SseEmitter sseEmitter = new SseEmitter(0L);
 
             // 注册回调
             sseEmitter.onCompletion(completionCallBack(clientId));
