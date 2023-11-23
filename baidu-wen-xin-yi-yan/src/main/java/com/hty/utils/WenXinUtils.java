@@ -1,6 +1,7 @@
 package com.hty.utils;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.hty.config.WenXinConfig;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 /**
@@ -19,7 +21,7 @@ import java.util.*;
 
 @Component
 @Slf4j
-public class WenxinUtils {
+public class WenXinUtils {
 
     @Resource
     private OkHttpClient okHttpClient;
@@ -117,6 +119,68 @@ public class WenxinUtils {
         request.put("messages",messages);
         log.info("构造的请求JSON => {}",JSON.toJSONString(request));
         return JSON.toJSONString(request);
+    }
+
+    /**
+     * 对资源的关闭 将前面资源释放的代码抽取出来，防止重复
+     * @param response
+     * @param responseBody
+     * @param inputStream
+     */
+    public void closeStream(Response response, ResponseBody responseBody, InputStream inputStream){
+        if(inputStream != null){
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if(responseBody != null){
+            responseBody.close();
+        }
+        if(response != null){
+            response.close();
+        }
+    }
+
+    /**
+     * 将对话信息存在历史记录中
+     * @param role 角色
+     * @param content 内容
+     */
+    public void recordChatHistory(LinkedList<Map<String, String>> messages, String role, String content){
+        HashMap<String, String> map = new HashMap<>();
+        map.put("role",role);
+        map.put("content",content);
+        messages.offer(map);
+        if(role.equals("assistant") && messages.size() > 4){
+            int size = messages.size();
+            while(size -- > 4){
+                Map<String, String> message = messages.poll();
+                log.info("从历史记录中清除的消息 => {}", JSON.toJSONString(message));
+            }
+        }
+    }
+
+    /**
+     * 统计用户的Token消耗情况
+     * @param answerJSON AI回复的JSON对象
+     */
+    public void countToken(JSONObject answerJSON){
+        JSONObject usage = JSON.parseObject(answerJSON.getString("usage"));
+        log.info("输入消耗{}tokens,输出消耗{}tokens,总共消耗{}tokens",
+                usage.getString("prompt_tokens"),
+                usage.getString("completion_tokens"),
+                usage.getString("total_tokens"));
+    }
+
+    /***
+     * 从消息记录中移除最后一次对话信息
+     */
+    public void removeMessage(LinkedList<Map<String,String>> messages){
+        if(messages.peekLast() != null && messages.peekLast().get("role").equals("user")){
+            messages.pollLast();
+        }
     }
 
 }

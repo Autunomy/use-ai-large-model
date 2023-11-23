@@ -1,25 +1,15 @@
 package com.hty.controller;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.hty.config.WenXinConfig;
 import com.hty.service.AIChatService;
 import com.hty.utils.SSEUtils;
-import com.hty.utils.WenxinUtils;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 /**
  * @author hty
  * @date 2023-11-18 9:46
@@ -29,6 +19,7 @@ import java.util.concurrent.Executors;
 
 @RestController
 @Slf4j
+@RequestMapping("/wen-xin")
 public class AIChatController {
     @Resource
     private SSEUtils sseUtils;
