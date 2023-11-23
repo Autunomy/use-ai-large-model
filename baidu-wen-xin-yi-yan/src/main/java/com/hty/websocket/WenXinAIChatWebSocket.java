@@ -8,6 +8,7 @@ import java.util.Map;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hty.config.WenXinConfig;
+import com.hty.constant.WenXinModel;
 import com.hty.utils.WenXinUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
@@ -51,7 +52,7 @@ public class WenXinAIChatWebSocket {
         wenXinUtils.recordChatHistory(messages,"user",message);
         StringBuilder answer = new StringBuilder();
         // 发起异步请求
-        Response response = wenXinUtils.getERNIEBot40ChatStream(1,messages,true, wenXinConfig.ERNIE_Bot_4_0_URL);
+        Response response = wenXinUtils.getERNIEBot40ChatStream(1,messages,true,WenXinModel.ERNIE_Bot_4_0);
         InputStream inputStream = null;
         ResponseBody responseBody = null;
         // 发起异步请求

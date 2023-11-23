@@ -31,10 +31,6 @@ public class WenXinConfig {
     public String SECRET_KEY;
     @Value("${wenxin.accessTokenUrl}")
     public String ACCESS_TOKEN_URL;
-    @Value("${wenxin.ERNIE-Bot4.0URL}")
-    public String ERNIE_Bot_4_0_URL;
-    @Value("${wenxin.ERNIE-BotURL}")
-    public String ERNIE_Bot_URL;
 
     //过期时间为30天
     public String ACCESS_TOKEN = null;

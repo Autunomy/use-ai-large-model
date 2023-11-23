@@ -3,6 +3,7 @@ package com.hty.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hty.config.WenXinConfig;
+import com.hty.constant.WenXinModel;
 import com.hty.service.AIChatService;
 import com.hty.utils.SSEUtils;
 import com.hty.utils.WenXinUtils;
@@ -54,7 +55,7 @@ public class AIChatServiceImpl implements AIChatService {
             String requestJson = wenxinUtils.constructRequestJson(1,0.95,1.0,false,messages);
             RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestJson);
             Request request = new Request.Builder()
-                    .url(wenXinConfig.ERNIE_Bot_4_0_URL + "?access_token=" + wenXinConfig.flushAccessToken())
+                    .url(WenXinModel.getUrl(WenXinModel.ERNIE_Bot_4_0) + "?access_token=" + wenXinConfig.flushAccessToken())
                     .method("POST", body)
                     .addHeader("Content-Type", "application/json")
                     .build();
@@ -81,7 +82,7 @@ public class AIChatServiceImpl implements AIChatService {
         wenxinUtils.recordChatHistory(messages,"user",question);
         StringBuilder answer = new StringBuilder();
         // 发起异步请求
-        Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true,wenXinConfig.ERNIE_Bot_URL);
+        Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true, WenXinModel.ERNIE_Bot_4_0);
         InputStream inputStream = null;
         ResponseBody responseBody = null;
         // 以流的方式处理响应内容，输出到控制台
@@ -126,7 +127,7 @@ public class AIChatServiceImpl implements AIChatService {
 
             StringBuilder answer = new StringBuilder();
             // 发起异步请求
-            Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true,wenXinConfig.ERNIE_Bot_4_0_URL);
+            Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true,WenXinModel.ERNIE_Bot_4_0);
             InputStream inputStream = null;
             ResponseBody responseBody = null;
             // 发起异步请求
