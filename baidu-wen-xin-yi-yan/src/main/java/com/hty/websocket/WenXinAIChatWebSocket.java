@@ -9,7 +9,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hty.config.WenXinConfig;
 import com.hty.constant.WenXinModel;
-import com.hty.utils.WenXinUtils;
+import com.hty.utils.WenXinChatUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -27,12 +27,12 @@ import javax.websocket.server.ServerEndpoint;
 public class WenXinAIChatWebSocket {
 
     //由于WebSocket对象是多例的，所以不会注入进来，必须将其设置为static才能成功注入
-    private static WenXinUtils wenXinUtils;
+    private static WenXinChatUtils wenXinChatUtils;
     private static WenXinConfig wenXinConfig;
 
     @Resource
-    public void setWenXinUtils(WenXinUtils wenxinUtils){
-        WenXinAIChatWebSocket.wenXinUtils = wenxinUtils;
+    public void setWenXinUtils(WenXinChatUtils wenxinChatUtils){
+        WenXinAIChatWebSocket.wenXinChatUtils = wenxinChatUtils;
     }
 
     @Resource
@@ -49,10 +49,10 @@ public class WenXinAIChatWebSocket {
     public void onMessage(String message) throws IOException{
         log.info("[websocket] 收到消息：id={}，message={}", this.session.getId(), message);
 
-        wenXinUtils.recordChatHistory(messages,"user",message);
+        wenXinChatUtils.recordChatHistory(messages,"user",message);
         StringBuilder answer = new StringBuilder();
         // 发起异步请求
-        Response response = wenXinUtils.getERNIEBot40ChatStream(1,messages,true,WenXinModel.ERNIE_Bot_4_0);
+        Response response = wenXinChatUtils.getERNIEBot40ChatStream(1,messages,true);
         InputStream inputStream = null;
         ResponseBody responseBody = null;
         // 发起异步请求
@@ -74,19 +74,19 @@ public class WenXinAIChatWebSocket {
                 //从6开始 因为有 data: 这个前缀 占了6个字符所以 0 + 6 = 6 结尾还需要截取2个字符，因为是以\n\n结尾
                 JSONObject jsonObject = JSON.parseObject(str.substring(6, str.length()-2));
                 if(jsonObject != null && jsonObject.getString("result") != null){
-                    wenXinUtils.countToken(jsonObject);
+                    wenXinChatUtils.countToken(jsonObject);
                     result = jsonObject.getString("result");
                 }
                 sendMessage(result);
                 answer.append(result);
             }
-            wenXinUtils.recordChatHistory(messages,"assistant",answer.toString());
+            wenXinChatUtils.recordChatHistory(messages,"assistant",answer.toString());
         } catch (IOException e) {
             log.error("流式请求出错 => {}",e.getMessage());
             //此处还需要移除当次的问题，因为向前端发送消息失败了，需要重新发送消息
-            wenXinUtils.removeMessage(messages);
+            wenXinChatUtils.removeMessage(messages);
         }finally {
-            wenXinUtils.closeStream(response,responseBody,inputStream);
+            wenXinChatUtils.closeStream(response,responseBody,inputStream);
         }
 
     }

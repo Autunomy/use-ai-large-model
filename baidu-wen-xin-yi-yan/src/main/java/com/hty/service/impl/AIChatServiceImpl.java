@@ -6,7 +6,7 @@ import com.hty.config.WenXinConfig;
 import com.hty.constant.WenXinModel;
 import com.hty.service.AIChatService;
 import com.hty.utils.SSEUtils;
-import com.hty.utils.WenXinUtils;
+import com.hty.utils.WenXinChatUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class AIChatServiceImpl implements AIChatService {
     @Resource
     private WenXinConfig wenXinConfig;
     @Resource
-    private WenXinUtils wenxinUtils;
+    private WenXinChatUtils wenxinChatUtils;
     @Resource
     private SSEUtils sseUtils;
 
@@ -51,9 +51,10 @@ public class AIChatServiceImpl implements AIChatService {
         String responseJson = null;
         //先获取令牌然后才能访问api
         if (wenXinConfig.flushAccessToken() != null) {
-            wenxinUtils.recordChatHistory(messages,"user",question);
-            String requestJson = wenxinUtils.constructRequestJson(1,0.95,1.0,false,messages);
+            wenxinChatUtils.recordChatHistory(messages,"user",question);
+            String requestJson = wenxinChatUtils.constructRequestJson(1,0.95,1.0,false,messages);
             RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestJson);
+
             Request request = new Request.Builder()
                     .url(WenXinModel.getUrl(WenXinModel.ERNIE_Bot_4_0) + "?access_token=" + wenXinConfig.flushAccessToken())
                     .method("POST", body)
@@ -65,9 +66,9 @@ public class AIChatServiceImpl implements AIChatService {
                 //将回复的内容转为一个JSONObject
                 JSONObject responseObject = JSON.parseObject(responseJson);
                 //统计Token的消耗
-                wenxinUtils.countToken(responseObject);
+                wenxinChatUtils.countToken(responseObject);
                 //将回复的内容添加到消息中
-                wenxinUtils.recordChatHistory(messages,"assistant",responseObject.getString("result"));
+                wenxinChatUtils.recordChatHistory(messages,"assistant",responseObject.getString("result"));
             } catch (IOException e) {
                 log.error("网络有问题");
                 return "网络有问题，请稍后重试";
@@ -79,10 +80,10 @@ public class AIChatServiceImpl implements AIChatService {
     @Override
     public String streamOutputToTerminal(String question) {
         //将问题放在历史对话中
-        wenxinUtils.recordChatHistory(messages,"user",question);
+        wenxinChatUtils.recordChatHistory(messages,"user",question);
         StringBuilder answer = new StringBuilder();
         // 发起异步请求
-        Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true, WenXinModel.ERNIE_Bot_4_0);
+        Response response = wenxinChatUtils.getERNIEBot40ChatStream(1,messages,true);
         InputStream inputStream = null;
         ResponseBody responseBody = null;
         // 以流的方式处理响应内容，输出到控制台
@@ -101,11 +102,11 @@ public class AIChatServiceImpl implements AIChatService {
             }
         } catch (IOException e) {
             //如果出现了异常就应该将问题也从对话历史中删除
-            wenxinUtils.removeMessage(messages);
+            wenxinChatUtils.removeMessage(messages);
             log.error("InputStream流式读取出错 => {}",e.getMessage());
             throw new RuntimeException(e);
         }finally {
-            wenxinUtils.closeStream(response,responseBody,inputStream);
+            wenxinChatUtils.closeStream(response,responseBody,inputStream);
         }
 
         //将回复的内容添加到消息中
@@ -115,7 +116,7 @@ public class AIChatServiceImpl implements AIChatService {
             answerArray[i] = answerArray[i].substring(0,answerArray[i].length() - 2);
             assistantAnswer.append(JSON.parseObject(answerArray[i]).get("result"));
         }
-        wenxinUtils.recordChatHistory(messages,"assistant",assistantAnswer.toString());
+        wenxinChatUtils.recordChatHistory(messages,"assistant",assistantAnswer.toString());
         return assistantAnswer.toString();
     }
 
@@ -123,11 +124,11 @@ public class AIChatServiceImpl implements AIChatService {
     public void sendMessageToPageBySSE(Long clientId, String question) {
         //异步发送消息
         executorService.execute(() -> {
-            wenxinUtils.recordChatHistory(messages,"user",question);
+            wenxinChatUtils.recordChatHistory(messages,"user",question);
 
             StringBuilder answer = new StringBuilder();
             // 发起异步请求
-            Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true,WenXinModel.ERNIE_Bot_4_0);
+            Response response = wenxinChatUtils.getERNIEBot40ChatStream(1,messages,true);
             InputStream inputStream = null;
             ResponseBody responseBody = null;
             // 发起异步请求
@@ -149,7 +150,7 @@ public class AIChatServiceImpl implements AIChatService {
                     //从6开始 因为有 data: 这个前缀 占了6个字符所以 0 + 6 = 6 结尾还需要截取2个字符，因为是以\n\n结尾
                     JSONObject jsonObject = JSON.parseObject(str.substring(6, str.length()-2));
                     if(jsonObject != null && jsonObject.getString("result") != null){
-                        wenxinUtils.countToken(jsonObject);
+                        wenxinChatUtils.countToken(jsonObject);
                         result = jsonObject.getString("result");
                     }
                     if(!sseUtils.sendMessage(clientId,result)) {
@@ -158,15 +159,15 @@ public class AIChatServiceImpl implements AIChatService {
                     }
                     answer.append(result);
                 }
-                wenxinUtils.recordChatHistory(messages,"assistant",answer.toString());
+                wenxinChatUtils.recordChatHistory(messages,"assistant",answer.toString());
             } catch (IOException e) {
                 log.error("流式请求出错,断开与{}的连接 => {}",clientId,e.getMessage());
                 //移除当前的连接
                 sseUtils.removeConnect(clientId);
                 //此处还需要移除当次的问题，因为向前端发送消息失败了，需要重新发送消息
-                wenxinUtils.removeMessage(messages);
+                wenxinChatUtils.removeMessage(messages);
             }finally {
-                wenxinUtils.closeStream(response,responseBody,inputStream);
+                wenxinChatUtils.closeStream(response,responseBody,inputStream);
             }
         });
     }
