@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * @author hty
@@ -50,7 +51,7 @@ public class WenxinUtils {
                                      Double temperature,
                                      Double penaltyScore,
                                      Boolean stream,
-                                     List<Map<String,String>> messages){
+                                     Queue<Map<String,String>> messages){
         //构造请求参数的JSON格式
         String requestJson = constructRequestJson(userId,temperature,penaltyScore,stream,messages);
         //将请求参数封装为请求体
@@ -83,7 +84,7 @@ public class WenxinUtils {
      * @param messages
      * @return
      */
-    public Response getERNIEBot40ChatStream(Integer userId,List<Map<String,String>> messages){
+    public Response getERNIEBot40ChatStream(Integer userId,Queue<Map<String,String>> messages){
         return this.getERNIEBot40ChatStream(userId,ERNIE_BOT_4_0_DEFAULT_TEMPERATURE,ERNIE_BOT_4_0_DEFAULT_PENALTY_SCORE,ERNIE_BOT_4_0_DEFAULT_STREAM,messages);
     }
 
@@ -94,7 +95,7 @@ public class WenxinUtils {
      * @param stream
      * @return
      */
-    public Response getERNIEBot40ChatStream(Integer userId,List<Map<String,String>> messages,Boolean stream){
+    public Response getERNIEBot40ChatStream(Integer userId,Queue<Map<String,String>> messages,Boolean stream){
         return this.getERNIEBot40ChatStream(userId,ERNIE_BOT_4_0_DEFAULT_TEMPERATURE,ERNIE_BOT_4_0_DEFAULT_PENALTY_SCORE,stream,messages);
     }
 
@@ -110,7 +111,7 @@ public class WenxinUtils {
                                        Double temperature,
                                        Double penaltyScore,
                                        boolean stream,
-                                       List<Map<String, String>> messages) {
+                                       Queue<Map<String, String>> messages) {
         Map<String,Object> request = new HashMap<>();
         request.put("user_id",userId.toString());
         request.put("temperature",temperature);

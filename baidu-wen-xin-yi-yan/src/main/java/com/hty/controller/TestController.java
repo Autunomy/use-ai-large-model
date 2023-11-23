@@ -15,10 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -46,7 +43,7 @@ public class TestController {
 
     //TODO:这里可能需要的是一个队列，始终让队列中保持固定的元素，防止上下文太多导致消耗太多的token
     //历史对话，需要按照user,assistant
-    List<Map<String,String>> messages = new ArrayList<>();
+    Queue<Map<String,String>> messages = new ArrayDeque<>();
 
     /**
      * 非流式问答
@@ -93,7 +90,14 @@ public class TestController {
         HashMap<String, String> map = new HashMap<>();
         map.put("role",role);
         map.put("content",content);
-        messages.add(map);
+        messages.offer(map);
+        if(role.equals("assistant") && messages.size() > 4){
+            int size = messages.size();
+            while(size -- > 4){
+                Map<String, String> message = messages.poll();
+                log.info("从历史记录中清除的消息 => {}",JSON.toJSONString(message));
+            }
+        }
     }
 
     /**
