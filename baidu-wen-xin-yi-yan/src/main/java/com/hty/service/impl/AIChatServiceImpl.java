@@ -81,7 +81,7 @@ public class AIChatServiceImpl implements AIChatService {
         wenxinUtils.recordChatHistory(messages,"user",question);
         StringBuilder answer = new StringBuilder();
         // 发起异步请求
-        Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true);
+        Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true,wenXinConfig.ERNIE_Bot_URL);
         InputStream inputStream = null;
         ResponseBody responseBody = null;
         // 以流的方式处理响应内容，输出到控制台
@@ -126,7 +126,7 @@ public class AIChatServiceImpl implements AIChatService {
 
             StringBuilder answer = new StringBuilder();
             // 发起异步请求
-            Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true);
+            Response response = wenxinUtils.getERNIEBot40ChatStream(1,messages,true,wenXinConfig.ERNIE_Bot_4_0_URL);
             InputStream inputStream = null;
             ResponseBody responseBody = null;
             // 发起异步请求

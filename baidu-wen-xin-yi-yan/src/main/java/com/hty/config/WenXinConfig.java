@@ -2,6 +2,7 @@ package com.hty.config;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -21,6 +22,7 @@ import java.util.Date;
 
 @Configuration
 @Slf4j
+@Data
 public class WenXinConfig {
 
     @Value("${wenxin.apiKey}")
@@ -31,6 +33,8 @@ public class WenXinConfig {
     public String ACCESS_TOKEN_URL;
     @Value("${wenxin.ERNIE-Bot4.0URL}")
     public String ERNIE_Bot_4_0_URL;
+    @Value("${wenxin.ERNIE-BotURL}")
+    public String ERNIE_Bot_URL;
 
     //过期时间为30天
     public String ACCESS_TOKEN = null;

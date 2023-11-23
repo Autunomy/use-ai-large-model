@@ -44,20 +44,22 @@ public class WenXinUtils {
      * @param penaltyScore 通过对已生成的token增加惩罚，减少重复生成的现象。值越大表示惩罚越大，默认1.0，取值范围：[1.0, 2.0]
      * @param stream 是否是流式消息
      * @param messages 历史消息
+     * @param model 模型,从WenXinConfig中选择
      * @return
      */
     public Response getERNIEBot40ChatStream(Integer userId,
-                                     Double temperature,
-                                     Double penaltyScore,
-                                     Boolean stream,
-                                     LinkedList<Map<String,String>> messages){
+                                            Double temperature,
+                                            Double penaltyScore,
+                                            Boolean stream,
+                                            LinkedList<Map<String,String>> messages,
+                                            String model){
         //构造请求参数的JSON格式
         String requestJson = constructRequestJson(userId,temperature,penaltyScore,stream,messages);
         //将请求参数封装为请求体
         RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestJson);
         //构造请求
         Request request = new Request.Builder()
-                .url(wenXinConfig.ERNIE_Bot_4_0_URL + "?access_token=" + wenXinConfig.flushAccessToken())
+                .url(model + "?access_token=" + wenXinConfig.flushAccessToken())
                 .method("POST", body)
                 .addHeader("Content-Type", "application/json")
                 .build();
@@ -81,10 +83,11 @@ public class WenXinUtils {
      * 重载方法 将temperature、penaltyScore、stream设置为默认值
      * @param userId
      * @param messages
+     * @param model 模型,从WenXinConfig中选择
      * @return
      */
-    public Response getERNIEBot40ChatStream(Integer userId,LinkedList<Map<String,String>> messages){
-        return this.getERNIEBot40ChatStream(userId,ERNIE_BOT_4_0_DEFAULT_TEMPERATURE,ERNIE_BOT_4_0_DEFAULT_PENALTY_SCORE,ERNIE_BOT_4_0_DEFAULT_STREAM,messages);
+    public Response getERNIEBot40ChatStream(Integer userId,LinkedList<Map<String,String>> messages,String model){
+        return this.getERNIEBot40ChatStream(userId,ERNIE_BOT_4_0_DEFAULT_TEMPERATURE,ERNIE_BOT_4_0_DEFAULT_PENALTY_SCORE,ERNIE_BOT_4_0_DEFAULT_STREAM,messages,model);
     }
 
     /**
@@ -92,10 +95,11 @@ public class WenXinUtils {
      * @param userId
      * @param messages
      * @param stream
+     * @param model 模型,从WenXinConfig中选择
      * @return
      */
-    public Response getERNIEBot40ChatStream(Integer userId,LinkedList<Map<String,String>> messages,Boolean stream){
-        return this.getERNIEBot40ChatStream(userId,ERNIE_BOT_4_0_DEFAULT_TEMPERATURE,ERNIE_BOT_4_0_DEFAULT_PENALTY_SCORE,stream,messages);
+    public Response getERNIEBot40ChatStream(Integer userId,LinkedList<Map<String,String>> messages,Boolean stream,String model){
+        return this.getERNIEBot40ChatStream(userId,ERNIE_BOT_4_0_DEFAULT_TEMPERATURE,ERNIE_BOT_4_0_DEFAULT_PENALTY_SCORE,stream,messages,model);
     }
 
     /**
