@@ -24,8 +24,7 @@ import java.util.Map;
 @Component
 @Slf4j
 public class WenXinImgUtils {
-    @Resource
-    private OkHttpClient okHttpClient;
+
     @Resource
     private WenXinConfig wenXinConfig;
     @Resource

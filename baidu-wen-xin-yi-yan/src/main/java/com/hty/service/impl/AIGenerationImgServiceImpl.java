@@ -35,7 +35,7 @@ public class AIGenerationImgServiceImpl implements AIGenerationImgService {
         JSONArray data = JSON.parseArray(responseJsonObject.getString("data"));
 
         int i = 0;
-        while(data.getString(i) != null){
+        while(i < data.size()){
             JSONObject imgJsonObject = JSON.parseObject(data.getString(i));
             //图片的base64格式
             String imgBase64 = imgJsonObject.getString("b64_image");

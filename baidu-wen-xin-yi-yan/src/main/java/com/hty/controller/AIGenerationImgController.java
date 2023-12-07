@@ -38,5 +38,4 @@ public class AIGenerationImgController {
                                 Integer n){
         return aiGenerationImgService.generationImg(prompt,negativePrompt,sizeArrayIndex,n);
     }
-
 }
