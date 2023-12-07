@@ -10,3 +10,5 @@
 [SSE如何与前端交互点这里](https://www.yuque.com/autunomy/emwi09/au64kxb17vug4gmc#XCrVK)
 
 [图片生成API使用方式](https://www.yuque.com/autunomy/emwi09/vlnzu17dz08185md)
+
+项目的使用方式:https://www.yuque.com/autunomy/emwi09/xltbkcfuirkye0sn
