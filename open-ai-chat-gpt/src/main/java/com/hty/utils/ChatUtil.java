@@ -2,6 +2,7 @@ package com.hty.utils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.hty.config.OpenAIConfig;
 import com.hty.constant.RequestURL;
 import com.hty.eneity.pojo.ChatRequestParam;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +28,8 @@ import java.util.Map;
 public class ChatUtil {
     @Resource
     private OkHttpClient okHttpClient;
-
-    @Value("${openai.apikey}")
-    private String apiKey;
+    @Resource
+    private OpenAIConfig openAIConfig;
 
     /***
      * 非流式请求接口
@@ -46,7 +46,7 @@ public class ChatUtil {
                 .url(RequestURL.PROXY_CHAT_URL)
                 .method("POST", body)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer "+apiKey)
+                .addHeader("Authorization", "Bearer " + openAIConfig.apiKey)
                 .build();
         OkHttpClient client = okHttpClient.newBuilder().build();
         String responseJson = null;
@@ -54,9 +54,6 @@ public class ChatUtil {
             ResponseBody responseBody = client.newCall(request).execute().body();
             if(responseBody != null){
                 responseJson = responseBody.string();
-//                //将回复的内容转为一个JSONObject
-//                JSONObject responseObject = JSON.parseObject(responseJson);
-//                log.info("AI返回的回答JSON => {}",responseObject);
             }else{
                 log.info("AI返回的回答为空");
             }
@@ -82,7 +79,7 @@ public class ChatUtil {
                 .url(RequestURL.PROXY_CHAT_URL)
                 .method("POST", body)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer "+apiKey)
+                .addHeader("Authorization", "Bearer "+openAIConfig.apiKey)
                 .build();
         try {
             Response response = okHttpClient.newCall(request).execute();

@@ -10,6 +10,9 @@ package com.hty.constant;
 public class RequestURL {
     //对话的URL
     public static final String CHAT_URL = "https://api.openai.com/v1/chat/completions";
-    //代理地址
     public static final String PROXY_CHAT_URL = "https://openai-proxy-gk5q.onrender.com/v1/chat/completions";
+
+    //图片生成的URL
+    public static final String GENERATION_IMAGE = "https://api.openai.com/v1/images/generations";
+    public static final String PROXY_GENERATION_IMAGE = "https://openai-proxy-gk5q.onrender.com/v1/images/generations";
 }
