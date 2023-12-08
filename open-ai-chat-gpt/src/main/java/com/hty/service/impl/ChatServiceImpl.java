@@ -5,14 +5,25 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.hty.constant.Model;
 import com.hty.eneity.pojo.ChatRequestParam;
+import com.hty.eneity.pojo.ChatResponseBody;
+import com.hty.eneity.pojo.StreamChatResponseBody;
 import com.hty.service.ChatService;
 import com.hty.utils.ChatUtil;
+import com.hty.utils.SSEUtils;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author hty
@@ -27,9 +38,14 @@ public class ChatServiceImpl implements ChatService {
 
     @Resource
     private ChatUtil chatUtil;
+    @Resource
+    private SSEUtils sseUtils;
 
     //历史对话，需要按照user,assistant的顺序排列 使用队列方便控制上下文长度
     LinkedList<Map<String,String>> messages = new LinkedList<>();
+
+    //用来异步发送消息
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     @Override
     public String chat(String question) {
@@ -53,19 +69,101 @@ public class ChatServiceImpl implements ChatService {
         }
 
         //解析JSON字符串
-        JSONObject responseJSONObject = JSON.parseObject(responseJSON);
-        JSONArray choicesJSON = responseJSONObject.getJSONArray("choices");//包含AI的回复内容
-        String usageJSON = responseJSONObject.getString("usage");//包含token的使用信息
-        //解析token用量
-        chatUtil.parseUsage(usageJSON);
-        JSONObject choicesJSONObject = JSON.parseObject(choicesJSON.getString(0));
-        String messageJSON = choicesJSONObject.getString("message");
-        JSONObject messageJSONObject = JSON.parseObject(messageJSON);
-        String content = messageJSONObject.getString("content");//最终解析的AI的回复
+        ChatResponseBody chatResponseBody = JSON.parseObject(responseJSON, ChatResponseBody.class);
 
         //向消息列表中添加AI回复
+        String content = chatResponseBody.getChoices()[0].getMessage().getContent();
         chatUtil.addAssistantQuestion(content,messages);
 
         return content;
+    }
+
+    @Override
+    public void streamChat(String question,Long clientId) {
+        if(question == null || question.equals("")){
+            log.info("用户请求过来的问题为空");
+            return;
+        }
+
+        //异步发送消息
+        executorService.execute(() -> {
+            //记录消息
+            chatUtil.addUserQuestion(question,messages);
+
+            //设置请求的参数信息(聊天的配置信息)
+            ChatRequestParam requestParam = new ChatRequestParam();
+            requestParam.setMessages(messages);
+            requestParam.setModel(Model.GPT_3_5_TURBO);
+            requestParam.setStream(true);
+
+            // 发起异步请求
+            Response response = chatUtil.streamChat(requestParam);
+            if(response == null){
+                messages.removeLast();
+                return;
+            }
+
+            BufferedReader reader = null;
+            ResponseBody responseBody = null;
+            // 发起异步请求
+            try {
+                responseBody = response.body();
+                if (responseBody == null) {
+                    return;
+                }
+                reader = new BufferedReader(new InputStreamReader(responseBody.byteStream()));
+                String str;
+                //最终的回答
+                StringBuilder answer = new StringBuilder();
+                //因为一条消息内容太少，所以进行消息合并然后发送
+                StringBuilder sseBuffer = new StringBuilder();
+                while ((str = reader.readLine()) != null) {
+                    //解析每条数据 最终结束标志为 data: [DONE]
+                    if(!str.equals("data: [DONE]")){
+                        //前面有data前缀
+                        StreamChatResponseBody streamChatResponseBody = JSON.parseObject(str.substring(6), StreamChatResponseBody.class);
+                        String content = streamChatResponseBody.getChoices()[0].getDelta().getContent();
+                        if(content != null){
+                            //增加一个缓冲区,因为ChatGPT流式回答中每条内容太少，会产生过多的请求
+                            if(sseBuffer.length() > 20){
+                                if(!sseUtils.sendMessage(clientId,sseBuffer.toString())){
+                                    log.error("消息发送失败了，结束消息发送");
+                                    break;
+                                }
+                                sseBuffer = new StringBuilder();
+                            }
+                            answer.append(content);
+                            sseBuffer.append(content);
+                        }
+                    }
+                    //由于每条消息后面还有一个换行，需要将换行读取掉然后再继续读取下一条消息
+                    reader.readLine();
+                }
+                chatUtil.addAssistantQuestion(answer.toString(),messages);
+                //统计token消耗
+                log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",
+                        chatUtil.computeToken(question),
+                        chatUtil.computeToken(answer.toString()),
+                        chatUtil.computeToken(question) + chatUtil.computeToken(answer.toString()));
+
+
+            } catch (IOException e) {
+                log.error("流式请求出错,断开与{}的连接 => {}",clientId,e.getMessage());
+                //移除当前的连接
+                sseUtils.removeConnect(clientId);
+                //此处还需要移除当次的问题，因为向前端发送消息失败了，需要重新发送消息
+                messages.removeLast();
+            }finally {
+                try {
+                    if(reader != null)
+                        reader.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                if(responseBody != null)
+                    responseBody.close();
+                response.close();
+            }
+        });
     }
 }

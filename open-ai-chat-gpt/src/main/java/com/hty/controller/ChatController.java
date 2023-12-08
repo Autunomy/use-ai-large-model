@@ -20,6 +20,7 @@ import javax.annotation.Resource;
 
 @RestController
 @Slf4j
+@RequestMapping("/openai")
 public class ChatController {
 
     @Resource
@@ -47,4 +48,13 @@ public class ChatController {
         return sseUtils.sseConnect(clientId);
     }
 
+    /**
+     * SSE方式向前端发送消息
+     * @param clientId
+     * @param question
+     */
+    @PostMapping(value = "/sse/chat")
+    public void streamOutputToPage(Long clientId,String question){
+        chatService.streamChat(question,clientId);
+    }
 }

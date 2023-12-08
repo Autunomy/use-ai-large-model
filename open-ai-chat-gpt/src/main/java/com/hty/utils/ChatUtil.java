@@ -69,11 +69,34 @@ public class ChatUtil {
 
     /***
      * 流式问答接口(SSE方式)
-     * @param chatRequestParam
+     * @param requestParam
      * @return
      */
-    public String streamChat(ChatRequestParam chatRequestParam){
+    public Response streamChat(ChatRequestParam requestParam){
+        //构造请求的JSON字符串
+        String requestJson = constructRequestJson(requestParam);
+        //构造请求体
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestJson);
+        //构造请求
+        Request request = new Request.Builder()
+                .url(RequestURL.PROXY_CHAT_URL)
+                .method("POST", body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", "Bearer "+apiKey)
+                .build();
+        try {
+            Response response = okHttpClient.newCall(request).execute();
+            // 检查响应是否成功
+            if (response.isSuccessful()) {
+                return response;
+            } else {
+                log.error("使用OkHttp访问ChatGPT请求成功但是响应不成功,响应结果:{}",response);
+            }
 
+        } catch (IOException e) {
+            log.error("流式请求出错 => {}",e.getMessage());
+            throw new RuntimeException(e);
+        }
 
         return null;
     }
@@ -129,16 +152,34 @@ public class ChatUtil {
         messages.addLast(map);
     }
 
-    /***
-     * 解析token的用量
-     * @param usageJSON
-     */
-    public void parseUsage(String usageJSON){
-        JSONObject usageJSONObject = JSON.parseObject(usageJSON);
-        String promptTokens = usageJSONObject.getString("prompt_tokens");
-        String completionTokens = usageJSONObject.getString("completion_tokens");
-        String totalTokens = usageJSONObject.getString("total_tokens");
-        log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",promptTokens,completionTokens,totalTokens);
-    }
 
+    /***
+     * 根据content计算token消耗
+     * @param content
+     * @return
+     */
+    public Integer computeToken(String content){
+        int tokenCount = 0;
+
+        // 分别处理中文和英文
+        for (int i = 0; i < content.length(); i++) {
+            char ch = content.charAt(i);
+
+            // 如果字符是中文（基于字符范围），视为一个 token
+            if (ch >= 0x4E00 && ch <= 0x9FFF) {
+                tokenCount++;
+            }
+            // 对于非中文字符，以空格为分割来估算英文单词数量
+            else if (ch == ' ') {
+                tokenCount++;
+            }
+
+            // 考虑连续的英文单词或非中文字符
+            if (i == content.length() - 1 && ch != ' ') {
+                tokenCount++;
+            }
+        }
+
+        return tokenCount;
+    }
 }

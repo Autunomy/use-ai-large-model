@@ -16,4 +16,11 @@ public interface ChatService {
      */
     String chat(String question);
 
+    /***
+     * 流式问答接口
+     * @param clientId
+     * @param question
+     */
+    void streamChat(String question,Long clientId);
+
 }
