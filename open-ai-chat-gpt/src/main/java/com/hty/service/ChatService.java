@@ -17,10 +17,23 @@ public interface ChatService {
     String chat(String question);
 
     /***
+     * 设置前置指令
+     * @param prompt 前置指令
+     * @return
+     */
+    public void setPrompt(String prompt);
+
+    /***
      * 流式问答接口
      * @param clientId
      * @param question
      */
     void streamChat(String question,Long clientId);
+
+
+    /***
+     * 清空历史对话
+     */
+    void clearHistory();
 
 }

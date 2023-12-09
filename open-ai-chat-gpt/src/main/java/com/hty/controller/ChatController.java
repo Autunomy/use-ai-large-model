@@ -57,4 +57,22 @@ public class ChatController {
     public void streamOutputToPage(Long clientId,String question){
         chatService.streamChat(question,clientId);
     }
+
+    /***
+     * 设置最开始system角色的提示词,专门用于
+     * @param prompt
+     * @return
+     */
+    @PostMapping("/set/prompt")
+    public void setPrompt(String prompt){
+        chatService.setPrompt(prompt);
+    }
+
+    /***
+     * 清空历史对话
+     */
+    @GetMapping("/clear/history")
+    public void clearHistory(){
+        chatService.clearHistory();
+    }
 }

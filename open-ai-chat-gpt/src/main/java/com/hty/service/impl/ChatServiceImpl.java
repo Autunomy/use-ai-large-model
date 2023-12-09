@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -53,6 +54,7 @@ public class ChatServiceImpl implements ChatService {
             log.info("用户请求过来的问题为空");
             return null;
         }
+
         chatUtil.addUserQuestion(question,messages);
 
         //设置请求的参数信息(聊天的配置信息)
@@ -75,7 +77,17 @@ public class ChatServiceImpl implements ChatService {
         String content = chatResponseBody.getChoices()[0].getMessage().getContent();
         chatUtil.addAssistantQuestion(content,messages);
 
+
         return content;
+    }
+
+    @Override
+    public void setPrompt(String prompt) {
+        Map<String,String> systemPrompt = new HashMap<>();
+        systemPrompt.put("role","system");
+        systemPrompt.put("content",prompt);
+        messages.addFirst(systemPrompt);
+        log.info("设置prompt => {}",prompt);
     }
 
     @Override
@@ -127,7 +139,7 @@ public class ChatServiceImpl implements ChatService {
                             //增加一个缓冲区,因为ChatGPT流式回答中每条内容太少，会产生过多的请求
                             if(sseBuffer.length() > 20){
                                 if(!sseUtils.sendMessage(clientId,sseBuffer.toString())){
-                                    log.error("消息发送失败了，结束消息发送");
+                                    log.error("消息发送失败了，结束消息发送,失败的消息 => {}",sseBuffer);
                                     break;
                                 }
                                 sseBuffer = new StringBuilder();
@@ -139,6 +151,13 @@ public class ChatServiceImpl implements ChatService {
                     //由于每条消息后面还有一个换行，需要将换行读取掉然后再继续读取下一条消息
                     reader.readLine();
                 }
+                //如果缓冲区还有没有发送的数据需要再次发送
+                if(sseBuffer.length() != 0){
+                    if(!sseUtils.sendMessage(clientId,sseBuffer.toString())){
+                        log.error("消息发送失败了，结束消息发送,失败的消息 => {}",sseBuffer);
+                    }
+                }
+
                 chatUtil.addAssistantQuestion(answer.toString(),messages);
                 //统计token消耗
                 log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",
@@ -165,5 +184,11 @@ public class ChatServiceImpl implements ChatService {
                 response.close();
             }
         });
+    }
+
+    @Override
+    public void clearHistory() {
+        log.info("清空历史对话列表");
+        messages.clear();
     }
 }

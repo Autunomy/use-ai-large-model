@@ -5,6 +5,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -63,9 +65,10 @@ public class SSEUtils {
             return false;
         }
         if(answer == null) return true;
-        //SSE协议默认是以两个\n换行符为结束标志 需要在进行一次转义才能成功发送给前端
+        //SSE协议默认是以两个\n换行符为结束标志 需要编码之后再发送，防止消息截断
         try {
-            sseEmitter.send(SseEmitter.event().data(answer.replace("\n","\\n")));
+            String encodedMessage = Base64.getEncoder().encodeToString(answer.getBytes(StandardCharsets.UTF_8));
+            sseEmitter.send(SseEmitter.event().data(encodedMessage));
         } catch (IOException e) {
             log.error("{}客户端消息发送失败 => {}",clientId,e.getMessage());
             throw new RuntimeException(e);

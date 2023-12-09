@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -94,7 +95,6 @@ public class ChatUtil {
             log.error("流式请求出错 => {}",e.getMessage());
             throw new RuntimeException(e);
         }
-
         return null;
     }
 
@@ -147,6 +147,17 @@ public class ChatUtil {
         map.put("role","assistant");
         map.put("content",content);
         messages.addLast(map);
+
+        //如果超过了4对问答就将最前面的全部删除
+        int n = messages.size() - 8;
+        Iterator<Map<String, String>> iterator = messages.iterator();
+        if(messages.getFirst().get("role").equals("system")){
+            iterator.next();
+            n -= 1;
+        }
+        while(n -- > 0){
+            iterator.remove();
+        }
     }
 
 

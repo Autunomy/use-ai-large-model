@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
@@ -52,4 +53,5 @@ public class ChatRequestParam {
     private Map logitBias;
     //代表您的最终用户的唯一标识符，可以帮助 OpenAI 监控和检测滥用行为。
     private String user;
+
 }
