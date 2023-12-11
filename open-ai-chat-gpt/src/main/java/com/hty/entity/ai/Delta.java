@@ -1,4 +1,4 @@
-package com.hty.eneity.pojo;
+package com.hty.entity.ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -3,8 +3,7 @@ package com.hty.utils;
 import com.alibaba.fastjson.JSON;
 import com.hty.config.OpenAIConfig;
 import com.hty.constant.RequestURL;
-import com.hty.eneity.pojo.ChatRequestParam;
-import com.hty.eneity.pojo.GenerationImageParam;
+import com.hty.entity.ai.GenerationImageParam;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.stereotype.Component;
@@ -73,6 +72,8 @@ public class ImageUtil {
             request.put("quality",generationImageParam.getQuality());
         if(generationImageParam.getResponseFormat() != null)
             request.put("response_format",generationImageParam.getResponseFormat());
+        //将size信息进行更新
+        generationImageParam.updateSizeBySizeIdx();
         if(generationImageParam.getSize() != null) request.put("size",generationImageParam.getSize());
         if(generationImageParam.getStyle() != null) request.put("style",generationImageParam.getStyle());
         if(generationImageParam.getUser() != null) request.put("user",generationImageParam.getUser());

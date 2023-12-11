@@ -1,4 +1,4 @@
-package com.hty.eneity.pojo;
+package com.hty.entity.pojo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,7 +8,7 @@ import java.util.Date;
 
 /**
  * @author hty
- * @date 2023-12-08 11:22
+ * @date 2023-12-11 11:45
  * @email 1156388927@qq.com
  * @description
  */
@@ -16,10 +16,10 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatResponseBody {
-    private String id;
-    private String object;
-    private Date created;
-    private Choices[] choices;
-    private Usage usage;
+public class OpenaiChatWindow {
+    private Integer id;
+    private Integer userId;
+    private Integer modelId;
+    private Date createTime;
+    private String title;
 }

@@ -1,11 +1,10 @@
-package com.hty.eneity.pojo;
+package com.hty.entity.ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
-import java.util.Map;
 
 /**
  * @author hty

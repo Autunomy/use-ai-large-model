@@ -1,13 +1,11 @@
 package com.hty.utils;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.hty.config.OpenAIConfig;
 import com.hty.constant.RequestURL;
-import com.hty.eneity.pojo.ChatRequestParam;
+import com.hty.entity.ai.ChatRequestParam;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;

@@ -1,12 +1,10 @@
 package com.hty.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.hty.constant.Model;
-import com.hty.eneity.pojo.ChatRequestParam;
-import com.hty.eneity.pojo.ChatResponseBody;
-import com.hty.eneity.pojo.StreamChatResponseBody;
+import com.hty.constant.ChatModel;
+import com.hty.entity.ai.ChatRequestParam;
+import com.hty.entity.ai.ChatResponseBody;
+import com.hty.entity.ai.StreamChatResponseBody;
 import com.hty.service.ChatService;
 import com.hty.utils.ChatUtil;
 import com.hty.utils.SSEUtils;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -60,7 +57,7 @@ public class ChatServiceImpl implements ChatService {
         //设置请求的参数信息(聊天的配置信息)
         ChatRequestParam requestParam = new ChatRequestParam();
         requestParam.setMessages(messages);
-        requestParam.setModel(Model.GPT_3_5_TURBO);
+        requestParam.setModel(ChatModel.GPT_3_5_TURBO);
 
         //AI回复的JSON字符串
         String responseJSON = chatUtil.chat(requestParam);
@@ -105,7 +102,7 @@ public class ChatServiceImpl implements ChatService {
             //设置请求的参数信息(聊天的配置信息)
             ChatRequestParam requestParam = new ChatRequestParam();
             requestParam.setMessages(messages);
-            requestParam.setModel(Model.GPT_3_5_TURBO);
+            requestParam.setModel(ChatModel.GPT_3_5_TURBO);
             requestParam.setStream(true);
 
             // 发起异步请求

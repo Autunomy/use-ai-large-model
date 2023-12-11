@@ -1,4 +1,4 @@
-package com.hty.eneity.pojo;
+package com.hty.entity.ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author hty
- * @date 2023-12-08 11:43
+ * @date 2023-12-08 11:44
  * @email 1156388927@qq.com
  * @description
  */
@@ -14,9 +14,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Choices {
-    private Integer index;
-    private Message message;
-    private Delta delta;
-    private String finishReason;
+public class Usage {
+    private Integer promptTokens;
+    private Integer completionTokens;
+    private Integer totalTokens;
 }

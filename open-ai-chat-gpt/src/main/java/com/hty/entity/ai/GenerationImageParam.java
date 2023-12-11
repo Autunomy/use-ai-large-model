@@ -1,9 +1,7 @@
-package com.hty.eneity.pojo;
+package com.hty.entity.ai;
 
-import com.hty.constant.Model;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.hty.constant.ImageModel;
+import lombok.*;
 
 /**
  * @author hty
@@ -27,21 +25,22 @@ public class GenerationImageParam {
     private String quality;
     //图片相应的格式 url或b64_json格式
     private String responseFormat;
-    //图片的尺寸 dall-e-2支持[256x256,512x512,1024x1024]  dall-e-3支持[1024x1024,1792x1024,1024x1792]
+    //图片的尺寸 dall-e-2支持[256x256,512x512,1024x1024]  dall-e-3支持[1024x1024,1792x1024,1024x1792] 但是不能设置size，需要通过sizeIdx来设置size
+    @Setter(AccessLevel.NONE) // 不生成set方法，防止用户直接设置size，产生错误
     private String size;
-    //图片尺寸对应的下标 在Model类中存储有图片尺寸的数组
-    private Integer sizeIdx;
     //图片风格 只有dall-e-3支持这个参数 有vivid和natural两种 vivid倾向于生成超真实和戏剧性的图像 natural生成更自然、不太真实的图像。
     private String style;
     //防止用户恶意刷接口的标识
     private String user;
 
+    //图片尺寸对应的下标 在Model类中存储有图片尺寸的数组
+    private Integer sizeIdx;
     /***
      * 给size设置值
      */
     public void updateSizeBySizeIdx(){
         if(sizeIdx != null && sizeIdx >= 0 && sizeIdx < 3){
-            size = Model.model2ImageSize.get(model)[sizeIdx];
+            size = ImageModel.model2ImageSize.get(model)[sizeIdx];
         }
     }
 

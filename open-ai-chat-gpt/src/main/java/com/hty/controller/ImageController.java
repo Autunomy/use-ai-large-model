@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @author hty
@@ -25,7 +26,8 @@ public class ImageController {
 
 
     @PostMapping("/generation/image")
-    public void generationImage(String prompt){
-        imageService.generationImage(prompt);
+    public List<String> generationImage(String prompt){
+        return imageService.generationImage(prompt);
     }
+
 }

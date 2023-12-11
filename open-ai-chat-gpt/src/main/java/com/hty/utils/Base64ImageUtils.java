@@ -22,7 +22,7 @@ public class Base64ImageUtils {
      * @param imgFilePath 图片在本机路径地址
      * @return
      */
-    public String GetImageStr(String imgFilePath) {
+    public String getImageStr(String imgFilePath) {
         byte[] data = null;
 
         // 读取图片字节数组
@@ -41,12 +41,12 @@ public class Base64ImageUtils {
     }
 
     /***
-     * 对字节数组字符串进行Base64解码并生成图片
+     * 对字节数组字符串进行Base64解码并生成图片 保存在本地
      * @param imgStr 待解码的Base64编码
      * @param imgFilePath 保存文件的路径
      * @return
      */
-    public boolean GenerateImage(String imgStr, String imgFilePath) {
+    public boolean generateImage(String imgStr, String imgFilePath) {
         if (imgStr == null) // 图像数据为空
             return false;
         BASE64Decoder decoder = new BASE64Decoder();
