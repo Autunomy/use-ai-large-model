@@ -9,4 +9,4 @@
 - [文心一言Stable_Diffusion_XL模型图片生成与Springboot整合](https://www.yuque.com/autunomy/emwi09/vlnzu17dz08185md)
 - [第一个文心Prompt](https://www.yuque.com/autunomy/emwi09/iz1i4up82qh3tl9u)
 - [对话类(chat)模型整合教程](https://www.yuque.com/autunomy/emwi09/anidsvk3bdognx1s)
-- [图像生成(images)类模型整合教程](https://www.yuque.com/autunomy/emwi09/kigp05egm68q6bv6)
+- [图像生成(images)类模型整合教程](https://www.yuque.com/autunomy/emwi09/kigp05egm68q6bv6) 
