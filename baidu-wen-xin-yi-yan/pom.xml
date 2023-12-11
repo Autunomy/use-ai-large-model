@@ -8,6 +8,7 @@
         <version>2.6.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
+
     <groupId>com.hty</groupId>
     <artifactId>baidu-wen-xin-yi-yan</artifactId>
     <version>0.0.1-SNAPSHOT</version>
@@ -37,6 +38,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
+            <version>1.2.83</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>

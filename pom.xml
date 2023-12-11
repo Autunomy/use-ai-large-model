@@ -6,7 +6,7 @@
 
     <modules>
         <module>baidu-wen-xin-yi-yan</module>
-        <module>open-ai-chat-gpt</module>
+<!--        <module>open-ai-chat-gpt</module>-->
     </modules>
 
     <packaging>pom</packaging>
