@@ -1,25 +1,30 @@
-package com.hty.service.impl;
+package com.hty.service.ai.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.hty.constant.ChatModel;
+import com.hty.dao.ai.OpenaiChatWindowMapper;
 import com.hty.entity.ai.ChatRequestParam;
 import com.hty.entity.ai.ChatResponseBody;
 import com.hty.entity.ai.StreamChatResponseBody;
-import com.hty.service.ChatService;
-import com.hty.utils.ChatUtil;
+import com.hty.entity.pojo.OpenaiChatWindow;
+import com.hty.service.ai.ChatService;
+import com.hty.utils.ai.ChatUtil;
 import com.hty.utils.SSEUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.ListOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -38,7 +43,12 @@ public class ChatServiceImpl implements ChatService {
     private ChatUtil chatUtil;
     @Resource
     private SSEUtils sseUtils;
+    @Resource
+    private OpenaiChatWindowMapper openaiChatWindowMapper;
+    @Resource(name = "stringRedisTemplate")
+    private StringRedisTemplate stringRedisTemplate;
 
+    //TODO:这里消息需要放在redis中，使用list数据结构，key是窗口id,每个value都是一个Map
     //历史对话，需要按照user,assistant的顺序排列 使用队列方便控制上下文长度
     LinkedList<Map<String,String>> messages = new LinkedList<>();
 
@@ -88,15 +98,23 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public void streamChat(String question,Long clientId) {
+    public void streamChat(String question,Long clientId,String windowId) {
         if(question == null || question.equals("")){
             log.info("用户请求过来的问题为空");
             return;
         }
 
+        //这里判断redis中是否存在这个窗口
+        if(stringRedisTemplate.opsForList().size(windowId) == 0){
+            log.info("窗口{}不存在或窗口有问题，没有设置prompt提示词，请重新创建窗口",windowId);
+            return;
+        }
+
         //异步发送消息
         executorService.execute(() -> {
-            //记录消息
+            //从redis中获取消息列表
+            LinkedList<Map<String, String>> messages = getMessageList(windowId);
+            //将当前问题插入到消息列表中
             chatUtil.addUserQuestion(question,messages);
 
             //设置请求的参数信息(聊天的配置信息)
@@ -108,7 +126,6 @@ public class ChatServiceImpl implements ChatService {
             // 发起异步请求
             Response response = chatUtil.streamChat(requestParam);
             if(response == null){
-                messages.removeLast();
                 return;
             }
 
@@ -155,32 +172,96 @@ public class ChatServiceImpl implements ChatService {
                     }
                 }
 
-                chatUtil.addAssistantQuestion(answer.toString(),messages);
+                //向redis中添加数据
+                putMessage2Redis(question,answer.toString(),windowId);
+
                 //统计token消耗
                 log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",
                         chatUtil.computeToken(question),
                         chatUtil.computeToken(answer.toString()),
                         chatUtil.computeToken(question) + chatUtil.computeToken(answer.toString()));
 
-
             } catch (IOException e) {
                 log.error("流式请求出错,断开与{}的连接 => {}",clientId,e.getMessage());
                 //移除当前的连接
                 sseUtils.removeConnect(clientId);
-                //此处还需要移除当次的问题，因为向前端发送消息失败了，需要重新发送消息
-                messages.removeLast();
             }finally {
                 try {
                     if(reader != null)
                         reader.close();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    e.printStackTrace();
                 }
                 if(responseBody != null)
                     responseBody.close();
                 response.close();
             }
         });
+    }
+
+    /***
+     * 向消息窗口新增数据
+     * @param question
+     * @param answer
+     * @param windowId
+     */
+    public void putMessage2Redis(String question,String answer,String windowId){
+        if(stringRedisTemplate.opsForList().size(windowId) == 0){
+            log.info("窗口{}不存在或窗口有问题，没有设置prompt提示词",windowId);
+            return;
+        }
+        Map<String,String> input = new HashMap<>();
+        input.put("role","user");
+        input.put("content",question);
+        Map<String,String> output = new HashMap<>();
+        output.put("role","assistant");
+        output.put("content",answer);
+        stringRedisTemplate.opsForList().rightPush(windowId,JSON.toJSONString(input));
+        stringRedisTemplate.opsForList().rightPush(windowId,JSON.toJSONString(output));
+    }
+
+    /***
+     * 从redis中获取消息列表且只获取不超过5对 10条消息
+     * @param windowId
+     * @return
+     */
+    public LinkedList<Map<String,String>> getMessageList(String windowId){
+        LinkedList<Map<String,String>> messageList = new LinkedList<>();
+        ListOperations<String, String> window = stringRedisTemplate.opsForList();
+        //将prompt先添加进去
+        messageList.add(JSON.parseObject(window.index(windowId,0),Map.class));
+        long size = window.size(windowId);
+        //从末尾获取5对消息
+        for(long i=(size-1 > 10 ? size-11: 0) + 1;i < size;++i){
+            messageList.add(JSON.parseObject(window.index(windowId,(int) i),Map.class));
+        }
+        return messageList;
+    }
+
+
+    @Transactional
+    @Override
+    public String createChatWindow(Integer userId,Integer modelId,String prompt) {
+        log.info("正在创建聊天窗口");
+        OpenaiChatWindow openaiChatWindow = new OpenaiChatWindow();
+        openaiChatWindow.setWindowId(UUID.randomUUID().toString().replace("-",""));
+        openaiChatWindow.setModelId(modelId);
+        openaiChatWindow.setUserId(userId);
+        openaiChatWindow.setTitle("新聊天");
+        openaiChatWindow.setCreateTime(new Date());
+
+        //给数据库中插入这个窗口信息
+        Integer rows = openaiChatWindowMapper.createWindow(openaiChatWindow);
+        log.info("受影响的行数 => {}", rows);
+
+        //在redis中开通窗口并同时设置前置提示词
+        Map<String,String> system = new HashMap<>();
+        system.put("role","system");
+        if (prompt == null) prompt = "";
+        system.put("content",prompt);
+        stringRedisTemplate.opsForList().rightPush(openaiChatWindow.getWindowId(),JSON.toJSONString(system));
+
+        return openaiChatWindow.getWindowId();
     }
 
     @Override

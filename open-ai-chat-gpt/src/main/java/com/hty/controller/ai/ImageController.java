@@ -1,6 +1,6 @@
-package com.hty.controller;
+package com.hty.controller.ai;
 
-import com.hty.service.ImageService;
+import com.hty.service.ai.ImageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

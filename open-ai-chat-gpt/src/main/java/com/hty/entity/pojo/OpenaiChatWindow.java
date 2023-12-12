@@ -17,8 +17,10 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OpenaiChatWindow {
+
     private Integer id;
     private Integer userId;
+    private String windowId;
     private Integer modelId;
     private Date createTime;
     private String title;

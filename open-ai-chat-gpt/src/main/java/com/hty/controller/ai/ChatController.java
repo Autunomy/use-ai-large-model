@@ -1,12 +1,9 @@
-package com.hty.controller;
+package com.hty.controller.ai;
 
-import com.hty.service.ChatService;
+import com.hty.service.ai.ChatService;
 import com.hty.utils.SSEUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
@@ -52,10 +49,11 @@ public class ChatController {
      * SSE方式向前端发送消息
      * @param clientId
      * @param question
+     * @param windowId 窗口的UUID
      */
     @PostMapping(value = "/sse/chat")
-    public void streamOutputToPage(Long clientId,String question){
-        chatService.streamChat(question,clientId);
+    public void streamOutputToPage(Long clientId,String question,String windowId){
+        chatService.streamChat(question,clientId,windowId);
     }
 
     /***
@@ -69,7 +67,20 @@ public class ChatController {
     }
 
     /***
+     * 创建一个聊天窗口
+     * @param userId
+     * @param modelId
+     * @param prompt 前置的prompt提示词
+     * @return
+     */
+    @PostMapping("/create/chat/window")
+    public String createChatWindow(Integer userId,Integer modelId,String prompt){
+        return chatService.createChatWindow(userId,modelId,prompt);
+    }
+
+    /***
      * 清空历史对话
+     * TODO:此controller是用于开发过程中的测试方便，开发完成后应该删除
      */
     @GetMapping("/clear/history")
     public void clearHistory(){

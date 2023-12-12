@@ -1,13 +1,13 @@
-package com.hty.service.impl;
+package com.hty.service.ai.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.hty.constant.ImageModel;
 import com.hty.entity.ai.GenerationImageParam;
 import com.hty.entity.ai.ImageResponseBody;
-import com.hty.service.ImageService;
+import com.hty.service.ai.ImageService;
 import com.hty.service.OssService;
 import com.hty.utils.Base64ImageUtils;
-import com.hty.utils.ImageUtil;
+import com.hty.utils.ai.ImageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

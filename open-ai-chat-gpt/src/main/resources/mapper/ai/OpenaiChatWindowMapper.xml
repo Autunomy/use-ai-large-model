@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hty.dao.ai.OpenaiChatWindowMapper">
+
+    <insert id="createWindow">
+        insert into openai_chat_window(user_id,window_id,model_id,title,create_time)
+        values (#{window.userId},#{window.windowId},#{window.modelId},#{window.title},#{window.createTime})
+    </insert>
+
+</mapper>

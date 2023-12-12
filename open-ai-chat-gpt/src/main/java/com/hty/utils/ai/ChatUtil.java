@@ -1,4 +1,4 @@
-package com.hty.utils;
+package com.hty.utils.ai;
 
 import com.alibaba.fastjson.JSON;
 import com.hty.config.OpenAIConfig;

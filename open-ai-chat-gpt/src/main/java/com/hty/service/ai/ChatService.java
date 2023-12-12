@@ -1,4 +1,4 @@
-package com.hty.service;
+package com.hty.service.ai;
 
 /**
  * @author hty
@@ -27,13 +27,24 @@ public interface ChatService {
      * 流式问答接口
      * @param clientId
      * @param question
+     * @param windowId 窗口的uuid
      */
-    void streamChat(String question,Long clientId);
+    void streamChat(String question,Long clientId,String windowId);
+
 
 
     /***
      * 清空历史对话
+     * TODO:为了方便测试开发的接口，需要删除
      */
     void clearHistory();
 
+    /***
+     * 创建一个聊天窗口
+     * @param userId
+     * @param modelId
+     * @param prompt 前置的prompt
+     * @return
+     */
+    String createChatWindow(Integer userId, Integer modelId,String prompt);
 }

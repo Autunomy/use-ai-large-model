@@ -1,4 +1,4 @@
-package com.hty.service;
+package com.hty.service.ai;
 
 import java.util.List;
 

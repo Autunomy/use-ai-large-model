@@ -1,4 +1,4 @@
-package com.hty.service.impl;
+package com.hty.service.ai.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
