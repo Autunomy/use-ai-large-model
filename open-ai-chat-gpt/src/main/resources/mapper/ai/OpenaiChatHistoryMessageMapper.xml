@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hty.dao.ai.OpenaiChatHistoryMessageMapper">
+    <insert id="insertMessage">
+        insert into openai_chat_history_message(message_card,role,content,create_time,tokens,chat_window_id)
+        values (
+                #{openaiChatHistoryMessage.messageCard},
+                #{openaiChatHistoryMessage.role},
+                #{openaiChatHistoryMessage.content},
+                #{openaiChatHistoryMessage.createTime},
+                #{openaiChatHistoryMessage.tokens},
+                #{openaiChatHistoryMessage.chatWindowId}
+               )
+    </insert>
+
+
+    <resultMap id="openaiChatHistoryMessage" type="com.hty.entity.pojo.OpenaiChatHistoryMessage">
+        <result property="messageCard" column="message_card"/>
+        <result property="role" column="role"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+        <result property="chatWindowId" column="chat_window_id"/>
+        <result property="tokens" column="tokens"/>
+    </resultMap>
+
+    <select id="getAllMessages" resultMap="openaiChatHistoryMessage">
+        select
+            ochm.role role,
+            ochm.content content,
+            ochm.message_card message_card,
+            ochm.create_time create_time,
+            ochm.chat_window_id chat_window_id,
+            ochm.tokens tokens
+        from
+            openai_chat_history_message ochm,openai_chat_window ocw
+        where
+            ochm.chat_window_id = ocw.id and ocw.window_id = #{windowId}
+    </select>
+    <select id="countWindowMessage" resultType="java.lang.Long">
+        select count(*)
+        from
+            openai_chat_history_message ochm,openai_chat_window ocw
+        where
+            ochm.chat_window_id = ocw.id and ocw.window_id = #{windowId}
+    </select>
+</mapper>

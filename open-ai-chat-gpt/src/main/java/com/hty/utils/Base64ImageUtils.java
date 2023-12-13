@@ -10,10 +10,9 @@ import java.io.*;
  * @author hty
  * @date 2023-11-23 22:14
  * @email 1156388927@qq.com
- * @description Base64转图片工具类
+ * @description Base64转图片工具类，只能将图片存储在本地
  */
 
-//TODO:当前工具类仅能保存在本地，后续需要拓展为对象存储
 @Component
 public class Base64ImageUtils {
 

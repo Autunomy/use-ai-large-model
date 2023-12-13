@@ -1,5 +1,6 @@
 package com.hty.controller.ai;
 
+import com.hty.entity.pojo.OpenaiChatHistoryMessage;
 import com.hty.service.ai.ChatService;
 import com.hty.utils.SSEUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @author hty
@@ -79,11 +81,12 @@ public class ChatController {
     }
 
     /***
-     * 清空历史对话
-     * TODO:此controller是用于开发过程中的测试方便，开发完成后应该删除
+     * 获取一个窗口的全部消息
+     * @param windowId
+     * @return
      */
-    @GetMapping("/clear/history")
-    public void clearHistory(){
-        chatService.clearHistory();
+    @GetMapping("/get/all/message")
+    public List<OpenaiChatHistoryMessage> getAllMessage(String windowId){
+        return chatService.getAllMessage(windowId);
     }
 }

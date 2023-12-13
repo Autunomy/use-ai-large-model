@@ -1,5 +1,9 @@
 package com.hty.service.ai;
 
+import com.hty.entity.pojo.OpenaiChatHistoryMessage;
+
+import java.util.List;
+
 /**
  * @author hty
  * @date 2023-12-07 13:24
@@ -33,13 +37,6 @@ public interface ChatService {
     void streamChat(String question,Long clientId,String windowId);
 
 
-
-    /***
-     * 清空历史对话
-     * TODO:为了方便测试开发的接口，需要删除
-     */
-    void clearHistory();
-
     /***
      * 创建一个聊天窗口
      * @param userId
@@ -48,4 +45,12 @@ public interface ChatService {
      * @return
      */
     String createChatWindow(Integer userId, Integer modelId,String prompt);
+
+
+    /***
+     * 获取一个窗口的全部消息
+     * @param windowId
+     * @return
+     */
+    List<OpenaiChatHistoryMessage> getAllMessage(String windowId);
 }

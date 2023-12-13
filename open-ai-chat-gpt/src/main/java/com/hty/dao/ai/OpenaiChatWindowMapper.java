@@ -19,4 +19,12 @@ public interface OpenaiChatWindowMapper {
      * @param window
      */
     Integer createWindow(@Param("window")OpenaiChatWindow window);
+
+
+    /***
+     * 根据windowId获取id
+     * @param windowId
+     * @return
+     */
+    Integer getIdByWindowId(@Param("windowId")String windowId);
 }

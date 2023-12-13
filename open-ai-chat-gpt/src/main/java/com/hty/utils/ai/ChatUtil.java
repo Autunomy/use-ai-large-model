@@ -195,32 +195,14 @@ public class ChatUtil {
     }
 
     /***
-     * 根据content计算token消耗 当前接口统计的是大概的token数量，并不精确，目前已经废除
+     * 根据content计算token消耗
      * @param content
      * @return
      */
-    @Deprecated
-    public Integer computeToken(String content){
-        int tokenCount = 0;
-
-        // 分别处理中文和英文
-        for (int i = 0; i < content.length(); i++) {
-            char ch = content.charAt(i);
-
-            // 如果字符是中文（基于字符范围），视为一个 token
-            if (ch >= 0x4E00 && ch <= 0x9FFF) {
-                tokenCount++;
-            }
-            // 对于非中文字符，以空格为分割来估算英文单词数量
-            else if (ch == ' ') {
-                tokenCount++;
-            }
-
-            // 考虑连续的英文单词或非中文字符
-            if (i == content.length() - 1 && ch != ' ') {
-                tokenCount++;
-            }
-        }
-        return tokenCount;
+    public Integer computeToken(String content,String model){
+        //TODO:根据模型选择不同的编码方式
+        //获取模型对应的编码方式
+        Encoding encoding = registry.getEncodingForModel(ModelType.GPT_3_5_TURBO);
+        return encoding.countTokens(content);
     }
 }
