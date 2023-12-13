@@ -31,8 +31,8 @@ public class ChatController {
      * @return
      */
     @PostMapping("/chat")
-    public String chat(String question){
-        return chatService.chat(question);
+    public String chat(String question,String windowId){
+        return chatService.chat(question,windowId);
     }
 
     /**

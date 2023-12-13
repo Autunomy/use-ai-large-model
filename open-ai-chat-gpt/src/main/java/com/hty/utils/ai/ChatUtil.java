@@ -4,6 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.hty.config.OpenAIConfig;
 import com.hty.constant.RequestURL;
 import com.hty.entity.ai.ChatRequestParam;
+import com.hty.entity.ai.Usage;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingRegistry;
+import com.knuddels.jtokkit.api.EncodingType;
+import com.knuddels.jtokkit.api.ModelType;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.stereotype.Component;
@@ -29,6 +34,8 @@ public class ChatUtil {
     private OkHttpClient okHttpClient;
     @Resource
     private OpenAIConfig openAIConfig;
+    @Resource
+    private EncodingRegistry registry;
 
     /***
      * 非流式请求接口
@@ -158,12 +165,41 @@ public class ChatUtil {
         }
     }
 
+    /***
+     * 使用jtokkit库来计算token消耗
+     * @param requestParam
+     * @param answer
+     * @return 返回的是一个usage对象
+     *
+     * 当前统计方式中,每次都会比真实略微高一点,这样可以从中去赚取差价
+     */
+    public Usage computePromptToken(ChatRequestParam requestParam, String answer){
+        //TODO:根据模型选择不同的编码方式
+        //获取模型对应的编码方式
+        Encoding encoding = registry.getEncodingForModel(ModelType.GPT_3_5_TURBO);
+        //拼接输入,方式:将所有角色部分,content部分,model部分放入一个字符串中
+        StringBuilder content = new StringBuilder();
+        for (Map<String, String> message : requestParam.getMessages()) {
+            content.append("role").append(message.get("role"));
+            content.append(" ");
+            content.append("content").append(message.get("content"));
+            content.append(" ");
+        }
+        content.append("model").append(requestParam.getModel());
+        //使用获得到的编码方式计算token数量并设置为usage对象
+        Usage usage = new Usage();
+        usage.setPromptTokens(encoding.countTokens(content.toString()));
+        usage.setCompletionTokens(encoding.countTokens(answer));
+        usage.countTotalTokens();
+        return usage;
+    }
 
     /***
-     * 根据content计算token消耗
+     * 根据content计算token消耗 当前接口统计的是大概的token数量，并不精确，目前已经废除
      * @param content
      * @return
      */
+    @Deprecated
     public Integer computeToken(String content){
         int tokenCount = 0;
 
@@ -185,7 +221,6 @@ public class ChatUtil {
                 tokenCount++;
             }
         }
-
         return tokenCount;
     }
 }

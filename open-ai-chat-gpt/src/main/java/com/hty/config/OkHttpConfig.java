@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 
 @Configuration
-public class OkHttpConfiguration {
+public class OkHttpConfig {
 
     @Value("${ok.http.connect-timeout}")
     private Integer connectTimeout;

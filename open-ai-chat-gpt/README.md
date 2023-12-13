@@ -7,4 +7,7 @@
 2. 图片模块
     - 图片生成，效果明显好于文心的图像生成
 3. 数据库数据存储,表文件就在README.md文件的同级目录中
+4. redis作为缓存存储上下文信息
+
 项目教程：https://www.yuque.com/autunomy/emwi09/agrr9v1vo3ntpagw
+

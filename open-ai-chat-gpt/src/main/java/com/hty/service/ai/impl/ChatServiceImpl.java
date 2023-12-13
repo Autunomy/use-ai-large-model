@@ -6,6 +6,7 @@ import com.hty.dao.ai.OpenaiChatWindowMapper;
 import com.hty.entity.ai.ChatRequestParam;
 import com.hty.entity.ai.ChatResponseBody;
 import com.hty.entity.ai.StreamChatResponseBody;
+import com.hty.entity.ai.Usage;
 import com.hty.entity.pojo.OpenaiChatWindow;
 import com.hty.service.ai.ChatService;
 import com.hty.utils.ai.ChatUtil;
@@ -56,13 +57,18 @@ public class ChatServiceImpl implements ChatService {
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     @Override
-    public String chat(String question) {
+    public String chat(String question,String windowId) {
         if(question == null || question.equals("")){
             log.info("用户请求过来的问题为空");
             return null;
         }
 
-        chatUtil.addUserQuestion(question,messages);
+        //获取消息列表
+        LinkedList<Map<String, String>> messages = getMessageList(windowId);
+        //添加本次问题
+        chatUtil.addUserQuestion(question, messages);
+
+        //TODO:判断上下文长度是否超过长度
 
         //设置请求的参数信息(聊天的配置信息)
         ChatRequestParam requestParam = new ChatRequestParam();
@@ -73,7 +79,6 @@ public class ChatServiceImpl implements ChatService {
         String responseJSON = chatUtil.chat(requestParam);
 
         if(responseJSON == null){
-            messages.removeLast();
             return "出错了，请重试";
         }
 
@@ -81,11 +86,16 @@ public class ChatServiceImpl implements ChatService {
         ChatResponseBody chatResponseBody = JSON.parseObject(responseJSON, ChatResponseBody.class);
 
         //向消息列表中添加AI回复
-        String content = chatResponseBody.getChoices()[0].getMessage().getContent();
-        chatUtil.addAssistantQuestion(content,messages);
+        String answer = chatResponseBody.getChoices()[0].getMessage().getContent();
+        putMessage2Redis(question,answer,windowId);
 
+        //统计token消耗
+        log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",
+                chatResponseBody.getUsage().getPromptTokens(),
+                chatResponseBody.getUsage().getCompletionTokens(),
+                chatResponseBody.getUsage().getTotalTokens());
 
-        return content;
+        return answer;
     }
 
     @Override
@@ -104,7 +114,7 @@ public class ChatServiceImpl implements ChatService {
             return;
         }
 
-        //这里判断redis中是否存在这个窗口
+        //这里判断redis中是否存在这个窗口 TODO:需要非空判断
         if(stringRedisTemplate.opsForList().size(windowId) == 0){
             log.info("窗口{}不存在或窗口有问题，没有设置prompt提示词，请重新创建窗口",windowId);
             return;
@@ -112,10 +122,12 @@ public class ChatServiceImpl implements ChatService {
 
         //异步发送消息
         executorService.execute(() -> {
-            //从redis中获取消息列表
+            //获取消息列表
             LinkedList<Map<String, String>> messages = getMessageList(windowId);
             //将当前问题插入到消息列表中
             chatUtil.addUserQuestion(question,messages);
+
+            //TODO:判断上下文长度是否超过长度
 
             //设置请求的参数信息(聊天的配置信息)
             ChatRequestParam requestParam = new ChatRequestParam();
@@ -175,11 +187,12 @@ public class ChatServiceImpl implements ChatService {
                 //向redis中添加数据
                 putMessage2Redis(question,answer.toString(),windowId);
 
-                //统计token消耗
+                //统计token消耗 TODO:消耗统计的不正确 只统计了本次的输入输出，没有统计上下文的输入输出
+                Usage usage = chatUtil.computePromptToken(requestParam, answer.toString());
                 log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",
-                        chatUtil.computeToken(question),
-                        chatUtil.computeToken(answer.toString()),
-                        chatUtil.computeToken(question) + chatUtil.computeToken(answer.toString()));
+                        usage.getPromptTokens(),
+                        usage.getCompletionTokens(),
+                        usage.getTotalTokens());
 
             } catch (IOException e) {
                 log.error("流式请求出错,断开与{}的连接 => {}",clientId,e.getMessage());
@@ -206,6 +219,7 @@ public class ChatServiceImpl implements ChatService {
      * @param windowId
      */
     public void putMessage2Redis(String question,String answer,String windowId){
+        //TODO:需要非空判断
         if(stringRedisTemplate.opsForList().size(windowId) == 0){
             log.info("窗口{}不存在或窗口有问题，没有设置prompt提示词",windowId);
             return;
@@ -221,14 +235,16 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /***
-     * 从redis中获取消息列表且只获取不超过5对 10条消息
+     * 获取消息列表且只获取不超过5对 10条消息
      * @param windowId
      * @return
      */
     public LinkedList<Map<String,String>> getMessageList(String windowId){
+        //TODO:判断redis中是否存在，不存在就先从mysql中加载
+
         LinkedList<Map<String,String>> messageList = new LinkedList<>();
         ListOperations<String, String> window = stringRedisTemplate.opsForList();
-        //将prompt先添加进去
+        //将prompt先添加进去 TODO:需要非空判断
         messageList.add(JSON.parseObject(window.index(windowId,0),Map.class));
         long size = window.size(windowId);
         //从末尾获取5对消息
@@ -252,14 +268,20 @@ public class ChatServiceImpl implements ChatService {
 
         //给数据库中插入这个窗口信息
         Integer rows = openaiChatWindowMapper.createWindow(openaiChatWindow);
-        log.info("受影响的行数 => {}", rows);
 
-        //在redis中开通窗口并同时设置前置提示词
+        //在redis中开通窗口并同时设置前置提示词 TODO:需要设置过期时间
         Map<String,String> system = new HashMap<>();
         system.put("role","system");
         if (prompt == null) prompt = "";
         system.put("content",prompt);
-        stringRedisTemplate.opsForList().rightPush(openaiChatWindow.getWindowId(),JSON.toJSONString(system));
+        Long rightPush = stringRedisTemplate.opsForList().rightPush(openaiChatWindow.getWindowId(), JSON.toJSONString(system));
+
+        if(rows == 1 && rightPush != null && rightPush == 1){
+            log.info("窗口创建成功,id => {}",openaiChatWindow.getWindowId());
+        }else{
+            log.error("窗口创建失败,mysql => {},redis => {}",rows,rightPush);
+            throw new RuntimeException("窗口创建失败");
+        }
 
         return openaiChatWindow.getWindowId();
     }

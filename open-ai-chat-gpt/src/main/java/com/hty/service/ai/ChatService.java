@@ -12,9 +12,10 @@ public interface ChatService {
     /***
      * 非流式问答问答接口
      * @param question
+     * @param windowId 聊天窗口id
      * @return 包含AI回复和token用量详情的JSON
      */
-    String chat(String question);
+    String chat(String question,String windowId);
 
     /***
      * 设置前置指令

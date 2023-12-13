@@ -18,4 +18,8 @@ public class Usage {
     private Integer promptTokens;
     private Integer completionTokens;
     private Integer totalTokens;
+
+    public void countTotalTokens(){
+        this.totalTokens = promptTokens + completionTokens;
+    }
 }
