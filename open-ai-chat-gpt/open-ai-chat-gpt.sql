@@ -13,6 +13,7 @@ create table model(
 drop table if exists openai_chat_history_message;
 create table openai_chat_history_message(
     id int primary key auto_increment,
+    message_card varchar(100) comment '消息编号',
     role varchar(20) not null comment '角色名称',
     content text not null comment '内容',
     create_time datetime default CURRENT_TIMESTAMP comment '创建日期',

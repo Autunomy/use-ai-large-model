@@ -18,6 +18,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class OpenaiChatHistoryMessage {
     private Integer id;
+    private String messageCard;
     private String role;
     private String content;
     private Date createTime;

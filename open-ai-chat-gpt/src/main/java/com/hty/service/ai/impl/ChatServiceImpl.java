@@ -100,6 +100,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public void setPrompt(String prompt) {
+        //TODO:当前方法的参数中应该添加一个windowId,方便修改聊天的prompt
         Map<String,String> systemPrompt = new HashMap<>();
         systemPrompt.put("role","system");
         systemPrompt.put("content",prompt);
