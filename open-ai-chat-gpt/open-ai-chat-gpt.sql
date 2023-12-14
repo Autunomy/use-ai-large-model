@@ -1,7 +1,7 @@
 use use_ai_large_model;
 
 drop table if exists openai_chat_model;
-create table model(
+create table openai_chat_model(
     id int primary key auto_increment,
     name varchar(100) not null comment '模型名称',
     max_tokens int not null comment '模型能考虑的最大上下文大小',

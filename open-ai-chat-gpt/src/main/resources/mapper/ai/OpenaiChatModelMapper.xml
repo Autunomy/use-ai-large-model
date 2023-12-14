@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hty.dao.ai.OpenaiChatModelMapper">
+
+    <select id="checkModelExists" resultType="java.lang.Boolean">
+        SELECT EXISTS(SELECT 1 FROM openai_chat_model WHERE name = #{modelName})
+    </select>
+
+
+    <resultMap id="chatModel" type="com.hty.entity.pojo.OpenaiChatModel">
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="max_tokens" property="maxTokens"/>
+        <result column="status" property="status"/>
+        <result column="input_price" property="inputPrice"/>
+        <result column="output_price" property="outputPrice"/>
+    </resultMap>
+    <select id="selectModelByName" resultMap="chatModel">
+        select * from openai_chat_model where name = #{modelName}
+    </select>
+
+</mapper>

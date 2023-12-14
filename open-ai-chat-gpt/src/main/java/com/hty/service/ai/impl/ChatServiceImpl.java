@@ -77,45 +77,51 @@ public class ChatServiceImpl implements ChatService {
         //添加本次问题
         chatUtil.addUserQuestion(question, messages);
 
-        //TODO:判断上下文长度是否超过长度
-
         //设置请求的参数信息(聊天的配置信息)
         ChatRequestParam requestParam = new ChatRequestParam();
         requestParam.setMessages(messages);
         requestParam.setModel(ChatModel.GPT_3_5_TURBO);
 
-        //AI回复的JSON字符串
-        String responseJSON = chatUtil.chat(requestParam);
+        String responseJSON;
+        String answer = null;
+        try(
+                //请求AI
+                Response response = chatUtil.streamChat(requestParam);
+                ResponseBody responseBody = response.body()
+        ) {
 
-        if (responseJSON == null) {
-            return "出错了，请重试";
+            if(responseBody != null){
+                responseJSON = responseBody.string();
+                //解析JSON字符串
+                ChatResponseBody chatResponseBody = JSON.parseObject(responseJSON, ChatResponseBody.class);
+
+                //统计token消耗
+                Usage usage = new Usage(chatResponseBody.getUsage().getPromptTokens(),
+                        chatResponseBody.getUsage().getCompletionTokens(),
+                        chatResponseBody.getUsage().getTotalTokens());
+                log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",usage.getPromptTokens(),usage.getCompletionTokens(),usage.getTotalTokens() );
+
+                answer = chatResponseBody.getChoices()[0].getMessage().getContent();
+                //存储到redis中
+                putMessage2Redis(question, answer, windowId);
+                //存储到mysql中
+                //向mysql中添加数据
+                putMessage2Mysql(usage, "user", question, windowId);
+                putMessage2Mysql(usage, "assistant", answer, windowId);
+            }else{
+                log.info("AI返回的回答为空");
+            }
+        } catch (IOException e) {
+            log.error("请求发起失败 => {}",e.getMessage());
         }
-
-        //解析JSON字符串
-        ChatResponseBody chatResponseBody = JSON.parseObject(responseJSON, ChatResponseBody.class);
-
-        //统计token消耗
-        Usage usage = new Usage(chatResponseBody.getUsage().getPromptTokens(),
-                                chatResponseBody.getUsage().getCompletionTokens(),
-                                chatResponseBody.getUsage().getTotalTokens());
-        log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",usage.getPromptTokens(),usage.getCompletionTokens(),usage.getTotalTokens() );
-
-        //向消息列表中添加AI回复
-        String answer = chatResponseBody.getChoices()[0].getMessage().getContent();
-        //存储到redis中
-        putMessage2Redis(question, answer, windowId);
-        //存储到mysql中
-        //向mysql中添加数据
-        putMessage2Mysql(usage, "user", question, windowId);
-        putMessage2Mysql(usage, "assistant", answer, windowId);
-
 
         return answer;
     }
 
+    //TODO:当前方法的参数中应该添加一个windowId,方便修改聊天的prompt
     @Override
     public void setPrompt(String prompt) {
-        //TODO:当前方法的参数中应该添加一个windowId,方便修改聊天的prompt
+
         Map<String, String> systemPrompt = new HashMap<>();
         systemPrompt.put("role", "system");
         systemPrompt.put("content", prompt);
@@ -136,20 +142,19 @@ public class ChatServiceImpl implements ChatService {
             return;
         }
 
+        //获取消息列表
+        LinkedList<Map<String, String>> messages = getMessageList(windowId);
+
+        //判断消息列表是否成功被获取
+        if (messages == null) {
+            return;
+        }
+
         //异步发送消息
         executorService.execute(() -> {
-            //获取消息列表
-            LinkedList<Map<String, String>> messages = getMessageList(windowId);
-
-            //判断消息列表是否成功被获取
-            if (messages == null) {
-                return;
-            }
 
             //将当前问题插入到消息列表中
             chatUtil.addUserQuestion(question, messages);
-
-            //TODO:判断上下文长度是否超过长度
 
             //设置请求的参数信息(聊天的配置信息)
             ChatRequestParam requestParam = new ChatRequestParam();
@@ -287,13 +292,13 @@ public class ChatServiceImpl implements ChatService {
      * 从mysql中读取消息列表并存储到redis中
      * @param windowId
      */
-    public void getMessageListFromMysqlSave2Redis(String windowId){
+    public Boolean getMessageListFromMysqlSave2Redis(String windowId){
         //判断redis中是否存在，不存在就先从mysql中加载
         if (Boolean.FALSE.equals(stringRedisTemplate.hasKey(windowId))) {
             List<OpenaiChatHistoryMessage> allMessages = openaiChatHistoryMessageMapper.getAllMessages(windowId);
             if (allMessages == null || allMessages.size() == 0) {
                 log.info("窗口{}不存在", windowId);
-                return;
+                return false;
             }
             //加载进入redis中
             for (OpenaiChatHistoryMessage message : allMessages) {
@@ -303,6 +308,8 @@ public class ChatServiceImpl implements ChatService {
                 stringRedisTemplate.opsForList().rightPush(windowId, JSON.toJSONString(map));
             }
         }
+
+        return true;
     }
 
     /***
@@ -312,14 +319,15 @@ public class ChatServiceImpl implements ChatService {
      */
     public LinkedList<Map<String, String>> getMessageList(String windowId) {
         //从数据库中加载
-        getMessageListFromMysqlSave2Redis(windowId);
+        if(!getMessageListFromMysqlSave2Redis(windowId)) return null;
 
         //续费10分钟
         stringRedisTemplate.expire(windowId, 10, TimeUnit.MINUTES);
         LinkedList<Map<String, String>> messageList = new LinkedList<>();
         ListOperations<String, String> window = stringRedisTemplate.opsForList();
-        //将prompt先添加进去 TODO:需要非空判断
+        //将prompt先添加进去
         messageList.add(JSON.parseObject(window.index(windowId, 0), Map.class));
+
         long size = window.size(windowId);
         //从末尾获取5对消息
         for (long i = (size - 1 > 10 ? size - 11 : 0) + 1; i < size; ++i) {
@@ -327,7 +335,6 @@ public class ChatServiceImpl implements ChatService {
         }
         return messageList;
     }
-
 
     @Transactional
     @Override
@@ -382,4 +389,5 @@ public class ChatServiceImpl implements ChatService {
     public List<OpenaiChatHistoryMessage> getAllMessage(String windowId) {
         return openaiChatHistoryMessageMapper.getAllMessages(windowId);
     }
+
 }

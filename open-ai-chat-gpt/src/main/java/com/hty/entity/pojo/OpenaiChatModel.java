@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class OpenaiChatModel {
     private Integer id;
     private String name;
-    private int maxTokens;
+    private Integer maxTokens;
     private Integer status;
     private Double inputPrice;
     private Double outputPrice;

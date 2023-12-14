@@ -3,8 +3,10 @@ package com.hty.utils.ai;
 import com.alibaba.fastjson.JSON;
 import com.hty.config.OpenAIConfig;
 import com.hty.constant.RequestURL;
+import com.hty.dao.ai.OpenaiChatModelMapper;
 import com.hty.entity.ai.ChatRequestParam;
 import com.hty.entity.ai.Usage;
+import com.hty.entity.pojo.OpenaiChatModel;
 import com.knuddels.jtokkit.api.Encoding;
 import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
@@ -36,46 +38,21 @@ public class ChatUtil {
     private OpenAIConfig openAIConfig;
     @Resource
     private EncodingRegistry registry;
+    @Resource
+    private OpenaiChatModelMapper openaiChatModelMapper;
 
     /***
-     * 非流式请求接口
-     * @param requestParam 请求参数封装的实体类
-     * @return AI返回的JSON回答
-     */
-    public String chat(ChatRequestParam requestParam){
-        //构造请求的JSON字符串
-        String requestJson = constructRequestJson(requestParam);
-        //构造请求体
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestJson);
-        //构造请求
-        Request request = new Request.Builder()
-                .url(RequestURL.PROXY_CHAT_URL)
-                .method("POST", body)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer " + openAIConfig.apiKey)
-                .build();
-        OkHttpClient client = okHttpClient.newBuilder().build();
-        String responseJson = null;
-        try {
-            ResponseBody responseBody = client.newCall(request).execute().body();
-            if(responseBody != null){
-                responseJson = responseBody.string();
-            }else{
-                log.info("AI返回的回答为空");
-            }
-
-        } catch (IOException e) {
-            log.error("请求发起失败 => {}",e.getMessage());
-        }
-        return responseJson;
-    }
-
-    /***
-     * 流式问答接口(SSE方式)
+     * 问答接口
      * @param requestParam
      * @return
      */
     public Response streamChat(ChatRequestParam requestParam){
+
+        if(!checkTokenCount(requestParam)){
+            log.info("消息长度过长，请重新提问");
+            return null;
+        }
+
         //构造请求的JSON字符串
         String requestJson = constructRequestJson(requestParam);
         //构造请求体
@@ -101,6 +78,26 @@ public class ChatUtil {
             throw new RuntimeException(e);
         }
         return null;
+    }
+
+    /***
+     * 判断请求的token是否大于模型的token，超过长度的话就将message进行弹出
+     * @param requestParam
+     * @return
+     */
+    private Boolean checkTokenCount(ChatRequestParam requestParam){
+        Usage usage = computePromptToken(requestParam, null);
+        OpenaiChatModel openaiChatModel = openaiChatModelMapper.selectModelByName(requestParam.getModel());
+        while(openaiChatModel.getMaxTokens() < usage.getPromptTokens()){
+            //因为会有system输入，所以当只剩下一条消息的时候说明已经没有了上下文
+            if(requestParam.getMessages().size() == 1) return false;
+            //删除2遍的意思就是删除输入的同时也要删除输出
+            requestParam.getMessages().remove(1);
+            requestParam.getMessages().remove(1);
+            //重新计算token消耗
+            usage = computePromptToken(requestParam, null);
+        }
+        return true;
     }
 
     /**
