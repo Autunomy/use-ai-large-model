@@ -89,4 +89,14 @@ public class ChatController {
     public List<OpenaiChatHistoryMessage> getAllMessage(String windowId){
         return chatService.getAllMessage(windowId);
     }
+
+    /***
+     * 使用AI给聊天窗口生成标题
+     * @param windowId 窗口id
+     * @return 新的窗口标题
+     */
+    @PostMapping("/generation/title")
+    public String generationTitle(String windowId,String question){
+        return chatService.generationTitle(windowId,question);
+    }
 }

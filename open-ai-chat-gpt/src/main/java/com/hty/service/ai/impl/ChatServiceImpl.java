@@ -86,7 +86,7 @@ public class ChatServiceImpl implements ChatService {
         String answer = null;
         try(
                 //请求AI
-                Response response = chatUtil.streamChat(requestParam);
+                Response response = chatUtil.chat(requestParam);
                 ResponseBody responseBody = response.body()
         ) {
 
@@ -163,7 +163,7 @@ public class ChatServiceImpl implements ChatService {
             requestParam.setStream(true);
 
             // 发起异步请求
-            Response response = chatUtil.streamChat(requestParam);
+            Response response = chatUtil.chat(requestParam);
             if (response == null) {
                 return;
             }
@@ -388,6 +388,30 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public List<OpenaiChatHistoryMessage> getAllMessage(String windowId) {
         return openaiChatHistoryMessageMapper.getAllMessages(windowId);
+    }
+
+    @Transactional
+    @Override
+    public String generationTitle(String windowId,String question) {
+        //判断是否被AI生成过
+        if(openaiChatWindowMapper.getWindowTitleStatus(windowId) == 1){
+            log.info("窗口{}的标题已经被生成过了，无法重新生成",windowId);
+            return null;
+        }
+        //获取窗口的第一个问题
+
+        //AI生成窗口标题
+        question = "请为["+ question +"]这个问题生成一个标题,结果不要带引号,长度不能超过100个字符";
+        ChatResponseBody responseBody = JSON.parseObject(chatUtil.chat(question), ChatResponseBody.class);
+        String newTitle = responseBody.getChoices()[0].getMessage().getContent();
+        //修改数据库中窗口的标题，同时修改标题状态
+        OpenaiChatWindow chatWindow = new OpenaiChatWindow();
+        chatWindow.setTitle(newTitle);
+        chatWindow.setIsTitleGen(1);
+        chatWindow.setWindowId(windowId);
+        openaiChatWindowMapper.updateWindowTitleAndStatus(chatWindow);
+
+        return newTitle;
     }
 
 }

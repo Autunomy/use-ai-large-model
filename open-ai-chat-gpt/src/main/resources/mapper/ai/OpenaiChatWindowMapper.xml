@@ -6,8 +6,14 @@
         insert into openai_chat_window(user_id,window_id,model_id,title,create_time)
         values (#{window.userId},#{window.windowId},#{window.modelId},#{window.title},#{window.createTime})
     </insert>
+    <update id="updateWindowTitleAndStatus">
+        update openai_chat_window set title = #{chatWindow.title},is_title_gen = #{chatWindow.isTitleGen} where window_id = #{chatWindow.windowId}
+    </update>
     <select id="getIdByWindowId" resultType="java.lang.Integer">
         select id from openai_chat_window where window_id = #{windowId}
+    </select>
+    <select id="getWindowTitleStatus" resultType="java.lang.Integer">
+        select is_title_gen from openai_chat_window where window_id = #{windowId}
     </select>
 
 </mapper>

@@ -28,7 +28,8 @@ create table openai_chat_window(
     window_id varchar(100) not null comment '窗口id',
     model_id int not null comment '使用的模型',
     create_time datetime default CURRENT_TIMESTAMP comment '创建日期',
-    title varchar(100) not null default '新聊天' comment '窗口名称,在创建窗口的时候根据第一条消息来进行截取来生成标题，用户可以自定义'
+    title varchar(100) not null default '新聊天' comment '窗口名称,在创建窗口的时候根据第一条消息来进行截取来生成标题，用户可以自定义',
+    is_title_gen int not null default 0 comment '标题是否被AI自动生成，0-否 1-是'
 ) comment '聊天窗口';
 
 drop table if exists user;

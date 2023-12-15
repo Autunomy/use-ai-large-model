@@ -2,6 +2,7 @@ package com.hty.utils.ai;
 
 import com.alibaba.fastjson.JSON;
 import com.hty.config.OpenAIConfig;
+import com.hty.constant.ChatModel;
 import com.hty.constant.RequestURL;
 import com.hty.dao.ai.OpenaiChatModelMapper;
 import com.hty.entity.ai.ChatRequestParam;
@@ -42,11 +43,39 @@ public class ChatUtil {
     private OpenaiChatModelMapper openaiChatModelMapper;
 
     /***
+     * 一个最普通的非流式请求接口，提交问题并返回结果
+     * @param question
+     * @return
+     */
+    public String chat(String question){
+        ChatRequestParam requestParam = new ChatRequestParam();
+        LinkedList<Map<String,String>> messages = new LinkedList<>();
+        Map<String,String> map = new HashMap<>();
+        map.put("role","user");
+        map.put("content",question);
+        messages.add(map);
+
+        requestParam.setMessages(messages);
+        requestParam.setModel(ChatModel.GPT_3_5_TURBO);
+        String answer = "";
+        try (Response response = chat(requestParam);
+        ResponseBody responseBody = response.body();){
+            if(responseBody != null){
+                answer = responseBody.string();
+            }
+        } catch (IOException e) {
+            log.info("请求出错 => {}",e.getMessage());
+        }
+
+        return answer;
+    }
+
+    /***
      * 问答接口
      * @param requestParam
      * @return
      */
-    public Response streamChat(ChatRequestParam requestParam){
+    public Response chat(ChatRequestParam requestParam){
 
         if(!checkTokenCount(requestParam)){
             log.info("消息长度过长，请重新提问");
@@ -105,6 +134,7 @@ public class ChatUtil {
      */
     private String constructRequestJson(ChatRequestParam requestParam) {
         Map<String,Object> request = new HashMap<>();
+        //TODO:对于必须的字段需要增加非空判断
         request.put("model",requestParam.getModel());
         request.put("messages",requestParam.getMessages());
 

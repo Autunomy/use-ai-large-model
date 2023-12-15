@@ -24,4 +24,5 @@ public class OpenaiChatWindow {
     private Integer modelId;
     private Date createTime;
     private String title;
+    private Integer isTitleGen;
 }

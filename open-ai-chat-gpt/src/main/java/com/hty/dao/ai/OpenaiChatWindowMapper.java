@@ -27,4 +27,18 @@ public interface OpenaiChatWindowMapper {
      * @return
      */
     Integer getIdByWindowId(@Param("windowId")String windowId);
+
+    /***
+     * 判断窗口标题是否被AI生成过
+     * @param windowId
+     * @return
+     */
+    Integer getWindowTitleStatus(@Param("windowId")String windowId);
+
+    /***
+     * 修改聊天窗口的标题以及状态
+     * @param openaiChatWindow
+     * @return
+     */
+    Integer updateWindowTitleAndStatus(@Param("chatWindow") OpenaiChatWindow openaiChatWindow);
 }

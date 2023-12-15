@@ -53,4 +53,11 @@ public interface ChatService {
      * @return
      */
     List<OpenaiChatHistoryMessage> getAllMessage(String windowId);
+
+    /***
+     * 使用AI给聊天窗口生成标题
+     * @param windowId 窗口id
+     * @return 新的窗口标题
+     */
+    String generationTitle(String windowId,String question);
 }
