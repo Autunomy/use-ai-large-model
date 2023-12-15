@@ -4,6 +4,8 @@ import com.hty.entity.pojo.OpenaiChatModel;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * @author hty
  * @date 2023-12-14 9:53
@@ -27,5 +29,11 @@ public interface OpenaiChatModelMapper {
      * @return
      */
     OpenaiChatModel selectModelByName(@Param("modelName") String modelName);
+
+    /***
+     * 从database中加载所有没有过期的模型
+     * @return
+     */
+    List<OpenaiChatModel> selectAllModel();
 
 }

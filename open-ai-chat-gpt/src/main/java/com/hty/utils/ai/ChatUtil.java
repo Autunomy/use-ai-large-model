@@ -14,14 +14,12 @@ import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.ModelType;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author hty
@@ -41,13 +39,15 @@ public class ChatUtil {
     private EncodingRegistry registry;
     @Resource
     private OpenaiChatModelMapper openaiChatModelMapper;
+    @Resource(name = "stringRedisTemplate")
+    private StringRedisTemplate stringRedisTemplate;
 
     /***
      * 一个最普通的非流式请求接口，提交问题并返回结果
      * @param question
      * @return
      */
-    public String chat(String question){
+    public String chat(String question,String model){
         ChatRequestParam requestParam = new ChatRequestParam();
         LinkedList<Map<String,String>> messages = new LinkedList<>();
         Map<String,String> map = new HashMap<>();
@@ -56,7 +56,7 @@ public class ChatUtil {
         messages.add(map);
 
         requestParam.setMessages(messages);
-        requestParam.setModel(ChatModel.GPT_3_5_TURBO);
+        requestParam.setModel(model);
         String answer = "";
         try (Response response = chat(requestParam);
         ResponseBody responseBody = response.body();){
@@ -134,7 +134,11 @@ public class ChatUtil {
      */
     private String constructRequestJson(ChatRequestParam requestParam) {
         Map<String,Object> request = new HashMap<>();
-        //TODO:对于必须的字段需要增加非空判断
+        //对于必须的字段需要增加非空判断
+        if(requestParam.getModel() == null || requestParam.getMessages() == null){
+            log.error("请求缺少参数,model => {},messages => {}",requestParam.getModel(),requestParam.getMessages());
+            throw new RuntimeException("请求缺少参数");
+        }
         request.put("model",requestParam.getModel());
         request.put("messages",requestParam.getMessages());
 
@@ -201,9 +205,8 @@ public class ChatUtil {
      * 当前统计方式中,每次都会比真实略微高一点,这样可以从中去赚取差价
      */
     public Usage computePromptToken(ChatRequestParam requestParam, String answer){
-        //TODO:根据模型选择不同的编码方式
         //获取模型对应的编码方式
-        Encoding encoding = registry.getEncodingForModel(ModelType.GPT_3_5_TURBO);
+        Encoding encoding = registry.getEncodingForModel(ModelType.fromName(requestParam.getModel()).get());
         //拼接输入,方式:将所有角色部分,content部分,model部分放入一个字符串中
         StringBuilder content = new StringBuilder();
         for (Map<String, String> message : requestParam.getMessages()) {
@@ -227,9 +230,42 @@ public class ChatUtil {
      * @return
      */
     public Integer computeToken(String content,String model){
-        //TODO:根据模型选择不同的编码方式
         //获取模型对应的编码方式
-        Encoding encoding = registry.getEncodingForModel(ModelType.GPT_3_5_TURBO);
+        Encoding encoding = registry.getEncodingForModel(ModelType.fromName(model).get());
         return encoding.countTokens(content);
+    }
+
+    /***
+     * 从数据库中加载所有没有过期的模型到redis中
+     * TODO:需要加锁
+     */
+    public void loadModelFromDatabase2Redis(){
+        //获取所有的聊天的model
+        stringRedisTemplate.delete("chatModelSet");
+        List<OpenaiChatModel> openaiChatModelList = openaiChatModelMapper.selectAllModel();
+        for (OpenaiChatModel model : openaiChatModelList) {
+            //使用set存储，方便进行containsKey操作
+            stringRedisTemplate.opsForHash().put("chatModelSet",model.getName(),JSON.toJSONString(model));
+        }
+
+        //TODO:获取image生成、音频等的model
+    }
+
+    /***
+     *
+     * @return 聊天模型列表
+     */
+    public List<OpenaiChatModel> getAllChatModel(){
+        List<OpenaiChatModel> modelList = new ArrayList<>();
+        //从redis中获取模型列表
+        List<Object> chatModelList = stringRedisTemplate.opsForHash().values("chatModelSet");
+        //为空就重新从数据库中加载
+        if (chatModelList.size() == 0){
+            loadModelFromDatabase2Redis();
+        }
+        for (Object modelJSON : chatModelList) {
+            modelList.add(JSON.parseObject(modelJSON.toString(),OpenaiChatModel.class));
+        }
+        return modelList;
     }
 }

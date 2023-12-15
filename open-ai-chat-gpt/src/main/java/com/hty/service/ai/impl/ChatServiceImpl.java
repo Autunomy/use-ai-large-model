@@ -9,6 +9,7 @@ import com.hty.entity.ai.ChatResponseBody;
 import com.hty.entity.ai.StreamChatResponseBody;
 import com.hty.entity.ai.Usage;
 import com.hty.entity.pojo.OpenaiChatHistoryMessage;
+import com.hty.entity.pojo.OpenaiChatModel;
 import com.hty.entity.pojo.OpenaiChatWindow;
 import com.hty.service.ai.ChatService;
 import com.hty.utils.ai.ChatUtil;
@@ -402,7 +403,7 @@ public class ChatServiceImpl implements ChatService {
 
         //AI生成窗口标题
         question = "请为["+ question +"]这个问题生成一个标题,结果不要带引号,长度不能超过100个字符";
-        ChatResponseBody responseBody = JSON.parseObject(chatUtil.chat(question), ChatResponseBody.class);
+        ChatResponseBody responseBody = JSON.parseObject(chatUtil.chat(question,ChatModel.GPT_3_5_TURBO), ChatResponseBody.class);
         String newTitle = responseBody.getChoices()[0].getMessage().getContent();
         //修改数据库中窗口的标题，同时修改标题状态
         OpenaiChatWindow chatWindow = new OpenaiChatWindow();
@@ -412,6 +413,11 @@ public class ChatServiceImpl implements ChatService {
         openaiChatWindowMapper.updateWindowTitleAndStatus(chatWindow);
 
         return newTitle;
+    }
+
+    @Override
+    public List<OpenaiChatModel> getChatModelList() {
+        return chatUtil.getAllChatModel();
     }
 
 }

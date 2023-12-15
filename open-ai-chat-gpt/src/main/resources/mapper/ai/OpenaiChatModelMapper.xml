@@ -18,5 +18,8 @@
     <select id="selectModelByName" resultMap="chatModel">
         select * from openai_chat_model where name = #{modelName}
     </select>
+    <select id="selectAllModel" resultMap="chatModel">
+        select name,max_tokens,status,input_price,output_price from openai_chat_model where status = 0
+    </select>
 
 </mapper>

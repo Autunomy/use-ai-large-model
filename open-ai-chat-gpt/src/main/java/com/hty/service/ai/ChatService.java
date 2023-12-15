@@ -1,6 +1,7 @@
 package com.hty.service.ai;
 
 import com.hty.entity.pojo.OpenaiChatHistoryMessage;
+import com.hty.entity.pojo.OpenaiChatModel;
 
 import java.util.List;
 
@@ -60,4 +61,10 @@ public interface ChatService {
      * @return 新的窗口标题
      */
     String generationTitle(String windowId,String question);
+
+    /***
+     * 获取所有的聊天模型
+     * @return
+     */
+    List<OpenaiChatModel> getChatModelList();
 }

@@ -1,6 +1,7 @@
 package com.hty.controller.ai;
 
 import com.hty.entity.pojo.OpenaiChatHistoryMessage;
+import com.hty.entity.pojo.OpenaiChatModel;
 import com.hty.service.ai.ChatService;
 import com.hty.utils.SSEUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -98,5 +99,14 @@ public class ChatController {
     @PostMapping("/generation/title")
     public String generationTitle(String windowId,String question){
         return chatService.generationTitle(windowId,question);
+    }
+
+    /***
+     * 获取所有的聊天模型
+     * @return
+     */
+    @GetMapping("/chat/models")
+    public List<OpenaiChatModel> getChatModelList(){
+        return chatService.getChatModelList();
     }
 }
