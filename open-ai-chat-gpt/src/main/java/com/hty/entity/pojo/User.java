@@ -21,7 +21,6 @@ public class User {
     private String email;
     private String phoneNum;
     private String password;
-    private Double billTotal;
-    private Double bullLast;
+    private Integer billLast;
     private Date createTime;
 }

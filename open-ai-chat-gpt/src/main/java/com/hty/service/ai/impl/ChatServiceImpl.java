@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.hty.constant.ChatModel;
 import com.hty.dao.ai.OpenaiChatHistoryMessageMapper;
 import com.hty.dao.ai.OpenaiChatWindowMapper;
+import com.hty.dao.ai.UserMapper;
 import com.hty.entity.ai.ChatRequestParam;
 import com.hty.entity.ai.ChatResponseBody;
 import com.hty.entity.ai.StreamChatResponseBody;
@@ -11,6 +12,7 @@ import com.hty.entity.ai.Usage;
 import com.hty.entity.pojo.OpenaiChatHistoryMessage;
 import com.hty.entity.pojo.OpenaiChatModel;
 import com.hty.entity.pojo.OpenaiChatWindow;
+import com.hty.entity.pojo.User;
 import com.hty.service.ai.ChatService;
 import com.hty.utils.ai.ChatUtil;
 import com.hty.utils.SSEUtils;
@@ -54,6 +56,8 @@ public class ChatServiceImpl implements ChatService {
     private StringRedisTemplate stringRedisTemplate;
     @Resource
     private OpenaiChatHistoryMessageMapper openaiChatHistoryMessageMapper;
+    @Resource
+    private UserMapper userMapper;
 
 
     //用来异步发送消息
@@ -61,6 +65,12 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public String chat(String question, String windowId) {
+        //判断用户当前的余额是否足够
+        if(!checkAccountLast(windowId)){
+            log.info("用户余额不足");
+            return null;
+        }
+
         if (question == null || question.equals("")) {
             log.info("用户请求过来的问题为空");
             return null;
@@ -100,6 +110,8 @@ public class ChatServiceImpl implements ChatService {
                 log.info("本次请求输入消耗{}tokens,输出消耗{}tokens,总计消耗{}tokens",usage.getPromptTokens(),usage.getCompletionTokens(),usage.getTotalTokens() );
 
                 answer = chatResponseBody.getChoices()[0].getMessage().getContent();
+                //用户余额更新
+                updateUserAccountLast(windowId,usage);
                 //存储到redis中
                 putMessage2Redis(question, answer, windowId);
                 //存储到mysql中
@@ -141,8 +153,24 @@ public class ChatServiceImpl implements ChatService {
         log.info("设置{}窗口的prompt => {}",windowId, prompt);
     }
 
+    /***
+     * 判断用户余额是否足够
+     * @param windowId
+     * @return
+     */
+    public Boolean checkAccountLast(String windowId){
+        User user = userMapper.selectUserLastByWindowId(windowId);
+        return user.getBillLast() > 0;
+    }
+
     @Override
     public void streamChat(String question, Long clientId, String windowId) {
+        //判断用户当前的余额是否足够
+        if(!checkAccountLast(windowId)){
+            log.info("用户余额不足");
+            return;
+        }
+
         if (question == null || question.equals("")) {
             log.info("用户请求过来的问题为空");
             return;
@@ -230,6 +258,8 @@ public class ChatServiceImpl implements ChatService {
                         usage.getCompletionTokens(),
                         usage.getTotalTokens());
 
+                //用户余额更新
+                updateUserAccountLast(windowId,usage);
                 //向redis中添加数据
                 putMessage2Redis(question, answer.toString(), windowId);
                 //向mysql中添加数据
@@ -252,6 +282,23 @@ public class ChatServiceImpl implements ChatService {
                 response.close();
             }
         });
+    }
+
+    /***
+     * 更新用户的账户余额
+     * @param windowId
+     */
+    public void updateUserAccountLast(String windowId,Usage usage){
+        User user = userMapper.selectUserLastByWindowId(windowId);
+        user.setBillLast(user.getBillLast() - usage.getTotalTokens());
+
+        Integer rows = userMapper.updateUserBillLastById(user);
+        if(rows == 1){
+            log.info("用户{}余额扣减{}成功",user.getId(),usage.getTotalTokens());
+        }else{
+            //TODO:这里需要进行一些保险处理，例如将消息发送到固定的消息队列中，重新进行扣费
+            throw new RuntimeException("用户余额扣减失败");
+        }
     }
 
     /***
@@ -282,6 +329,11 @@ public class ChatServiceImpl implements ChatService {
      * @param content
      */
     public void putMessage2Mysql(Usage usage, String role, String content, String windowId) {
+        //针对不同的聊天统计不同的token数
+        Integer tokens = 0;
+        if(role.equals("user")) tokens = usage.getPromptTokens();
+        else if(role.equals("assistant")) tokens = usage.getCompletionTokens();
+
         //向mysql中插入前置提示词的消息
         OpenaiChatHistoryMessage newMessage = new OpenaiChatHistoryMessage(
                 null,
@@ -289,7 +341,7 @@ public class ChatServiceImpl implements ChatService {
                 role,
                 content,
                 new Date(),
-                usage.getTotalTokens(),
+                tokens,
                 openaiChatWindowMapper.getIdByWindowId(windowId));
         Integer insertMessageRows = openaiChatHistoryMessageMapper.insertMessage(newMessage);
         if (insertMessageRows == 1) {

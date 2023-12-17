@@ -39,8 +39,7 @@ create table user(
     email varchar(100) comment '用户邮箱',
     phone_num varchar(100) comment '手机号',
     password varchar(100) comment '密码',
-    bill_total double not null default 0 comment '账户总共的额度',
-    bill_last double not null default 0 comment '账户剩余额度',
+    bill_last int not null default 0 comment '账户剩余额度,token数量，可以为负数',
     create_time datetime default CURRENT_TIMESTAMP comment '注册时间'
 )comment '用户表';
 
