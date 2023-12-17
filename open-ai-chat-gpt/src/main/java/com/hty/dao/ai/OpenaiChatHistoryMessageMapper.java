@@ -39,4 +39,13 @@ public interface OpenaiChatHistoryMessageMapper {
      * @return
      */
     Long countWindowMessage(@Param("windowId") String windowId);
+
+
+    /***
+     * 修改窗口的prompt
+     * @param windowId
+     * @param prompt
+     * @return
+     */
+    Integer updatePrompt(@Param("windowId") String windowId,@Param("prompt") String prompt);
 }

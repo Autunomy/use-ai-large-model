@@ -62,11 +62,12 @@ public class ChatController {
     /***
      * 设置最开始system角色的提示词,专门用于
      * @param prompt
+     * @param windowId
      * @return
      */
     @PostMapping("/set/prompt")
-    public void setPrompt(String prompt){
-        chatService.setPrompt(prompt);
+    public void setPrompt(String prompt,String windowId){
+        chatService.setPrompt(prompt,windowId);
     }
 
     /***

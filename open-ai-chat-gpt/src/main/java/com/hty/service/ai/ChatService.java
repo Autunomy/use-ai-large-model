@@ -25,9 +25,10 @@ public interface ChatService {
     /***
      * 设置前置指令
      * @param prompt 前置指令
+     * @param windowId
      * @return
      */
-    public void setPrompt(String prompt);
+    public void setPrompt(String prompt,String windowId);
 
     /***
      * 流式问答接口

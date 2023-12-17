@@ -13,6 +13,15 @@
                )
     </insert>
 
+    <update id="updatePrompt">
+        update
+            openai_chat_history_message ochm,openai_chat_window ocw
+        set
+            ochm.content=#{prompt}
+        where
+            ocw.window_id=#{windowId} and ochm.chat_window_id = ocw.id and ochm.role='system'
+    </update>
+
 
     <resultMap id="openaiChatHistoryMessage" type="com.hty.entity.pojo.OpenaiChatHistoryMessage">
         <result property="messageCard" column="message_card"/>

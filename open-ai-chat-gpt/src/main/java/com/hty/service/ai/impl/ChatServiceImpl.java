@@ -119,15 +119,29 @@ public class ChatServiceImpl implements ChatService {
         return answer;
     }
 
-    //TODO:当前方法的参数中应该添加一个windowId,方便修改聊天的prompt
-    @Override
-    public void setPrompt(String prompt) {
 
-        Map<String, String> systemPrompt = new HashMap<>();
-        systemPrompt.put("role", "system");
-        systemPrompt.put("content", prompt);
-        messages.addFirst(systemPrompt);
-        log.info("设置prompt => {}", prompt);
+    @Transactional
+    @Override
+    public void setPrompt(String prompt,String windowId) {
+        //修改数据库中的窗口的prompt
+        Integer rows = openaiChatHistoryMessageMapper.updatePrompt(windowId, prompt);
+        if(rows != 1){
+            log.error("数据库中prompt设置失败,windowId => {}",windowId);
+            return;
+        }
+
+        //修改redis中的prompt
+        if(Boolean.TRUE.equals(stringRedisTemplate.hasKey(windowId))){
+            //弹出第一条消息，即prompt消息
+            stringRedisTemplate.opsForList().leftPop(windowId);
+            //重新添加
+            Map<String, String> systemPrompt = new HashMap<>();
+            systemPrompt.put("role", "system");
+            systemPrompt.put("content", prompt);
+            stringRedisTemplate.opsForList().leftPush(windowId,JSON.toJSONString(systemPrompt));
+        }
+
+        log.info("设置{}窗口的prompt => {}",windowId, prompt);
     }
 
     @Override
