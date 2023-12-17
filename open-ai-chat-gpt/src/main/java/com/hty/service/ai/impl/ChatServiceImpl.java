@@ -55,9 +55,6 @@ public class ChatServiceImpl implements ChatService {
     @Resource
     private OpenaiChatHistoryMessageMapper openaiChatHistoryMessageMapper;
 
-    //TODO:这里消息需要放在redis中，使用list数据结构，key是窗口id,每个value都是一个Map
-    //历史对话，需要按照user,assistant的顺序排列 使用队列方便控制上下文长度
-    LinkedList<Map<String, String>> messages = new LinkedList<>();
 
     //用来异步发送消息
     private final ExecutorService executorService = Executors.newCachedThreadPool();
@@ -264,7 +261,6 @@ public class ChatServiceImpl implements ChatService {
      * @param windowId
      */
     public void putMessage2Redis(String question, String answer, String windowId) {
-        //TODO:需要非空判断
         if (stringRedisTemplate.opsForList().size(windowId) == 0) {
             log.info("窗口{}不存在或窗口有问题，没有设置prompt提示词", windowId);
             return;
@@ -304,26 +300,22 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /***
-     * 从mysql中读取消息列表并存储到redis中
+     * 从mysql中读取消息列表并存储到redis中(强制加载)
      * @param windowId
      */
     public Boolean getMessageListFromMysqlSave2Redis(String windowId){
-        //判断redis中是否存在，不存在就先从mysql中加载
-        if (Boolean.FALSE.equals(stringRedisTemplate.hasKey(windowId))) {
-            List<OpenaiChatHistoryMessage> allMessages = openaiChatHistoryMessageMapper.getAllMessages(windowId);
-            if (allMessages == null || allMessages.size() == 0) {
-                log.info("窗口{}不存在", windowId);
-                return false;
-            }
-            //加载进入redis中
-            for (OpenaiChatHistoryMessage message : allMessages) {
-                Map<String, String> map = new HashMap<>();
-                map.put("role", message.getRole());
-                map.put("content", message.getContent());
-                stringRedisTemplate.opsForList().rightPush(windowId, JSON.toJSONString(map));
-            }
+        List<OpenaiChatHistoryMessage> allMessages = openaiChatHistoryMessageMapper.getAllMessages(windowId);
+        if (allMessages == null || allMessages.size() == 0) {
+            log.info("窗口{}不存在", windowId);
+            return false;
         }
-
+        //加载进入redis中
+        for (OpenaiChatHistoryMessage message : allMessages) {
+            Map<String, String> map = new HashMap<>();
+            map.put("role", message.getRole());
+            map.put("content", message.getContent());
+            stringRedisTemplate.opsForList().rightPush(windowId, JSON.toJSONString(map));
+        }
         return true;
     }
 
@@ -333,8 +325,11 @@ public class ChatServiceImpl implements ChatService {
      * @return
      */
     public LinkedList<Map<String, String>> getMessageList(String windowId) {
-        //从数据库中加载
-        if(!getMessageListFromMysqlSave2Redis(windowId)) return null;
+        //判断redis中是否存在，不存在就先从mysql中加载
+        if (Boolean.FALSE.equals(stringRedisTemplate.hasKey(windowId))) {
+            //从数据库中加载
+            if(!getMessageListFromMysqlSave2Redis(windowId)) return null;
+        }
 
         //续费10分钟
         stringRedisTemplate.expire(windowId, 10, TimeUnit.MINUTES);

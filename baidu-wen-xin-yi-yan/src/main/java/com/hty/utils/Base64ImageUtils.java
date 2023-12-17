@@ -13,7 +13,6 @@ import java.io.*;
  * @description Base64转图片工具类
  */
 
-//TODO:当前工具类仅能保存在本地，后续需要拓展为对象存储
 @Component
 public class Base64ImageUtils {
 
