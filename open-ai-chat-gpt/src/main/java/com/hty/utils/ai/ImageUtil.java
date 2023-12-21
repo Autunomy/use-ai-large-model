@@ -36,7 +36,7 @@ public class ImageUtil {
         RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestJson);
         //构造请求
         Request request = new Request.Builder()
-                .url(RequestURL.PROXY_GENERATION_IMAGE)
+                .url(RequestURL.RENDER_PROXY_GENERATION_IMAGE)
                 .method("POST", body)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", "Bearer "+openAIConfig.apiKey)

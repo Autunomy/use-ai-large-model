@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.hty.constant.ChatModel;
 import com.hty.dao.ai.OpenaiChatHistoryMessageMapper;
 import com.hty.dao.ai.OpenaiChatWindowMapper;
-import com.hty.dao.ai.UserMapper;
+import com.hty.dao.user.UserMapper;
 import com.hty.entity.ai.ChatRequestParam;
 import com.hty.entity.ai.ChatResponseBody;
 import com.hty.entity.ai.StreamChatResponseBody;
@@ -19,8 +19,6 @@ import com.hty.utils.SSEUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -203,20 +201,10 @@ public class ChatServiceImpl implements ChatService {
             requestParam.setStream(true);
 
             // 发起异步请求
-            Response response = chatUtil.chat(requestParam);
-            if (response == null) {
-                return;
-            }
-
-            BufferedReader reader = null;
-            ResponseBody responseBody = null;
-            // 发起异步请求
-            try {
-                responseBody = response.body();
-                if (responseBody == null) {
-                    return;
-                }
-                reader = new BufferedReader(new InputStreamReader(responseBody.byteStream()));
+            try(Response response = chatUtil.chat(requestParam);
+                ResponseBody responseBody = response.body();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(responseBody.byteStream()))
+            ){
                 String str;
                 //最终的回答
                 StringBuilder answer = new StringBuilder();
@@ -270,16 +258,6 @@ public class ChatServiceImpl implements ChatService {
                 log.error("流式请求出错,断开与{}的连接 => {}", clientId, e.getMessage());
                 //移除当前的连接
                 sseUtils.removeConnect(clientId);
-            } finally {
-                try {
-                    if (reader != null)
-                        reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (responseBody != null)
-                    responseBody.close();
-                response.close();
             }
         });
     }

@@ -1,4 +1,4 @@
-package com.hty.dao.ai;
+package com.hty.dao.user;
 
 import com.hty.entity.pojo.User;
 import org.apache.ibatis.annotations.Mapper;
@@ -27,5 +27,13 @@ public interface UserMapper {
      * @return
      */
     Integer updateUserBillLastById(@Param("user") User user);
+
+    /***
+     * 给用户充值
+     * @param userId
+     * @param count 充值的token数量
+     * @return
+     */
+    Integer updateUserBillLast(@Param("userId") Integer userId,@Param("count") Integer count);
 
 }

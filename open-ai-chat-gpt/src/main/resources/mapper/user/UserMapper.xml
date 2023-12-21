@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.hty.dao.ai.UserMapper">
+<mapper namespace="com.hty.dao.user.UserMapper">
 
     <resultMap id="mapUser" type="com.hty.entity.pojo.User">
         <result property="id" column="id"/>
@@ -12,5 +12,9 @@
 
     <update id="updateUserBillLastById" parameterType="com.hty.entity.pojo.User">
         update user set bill_last = #{user.billLast} where id = #{user.id}
+    </update>
+
+    <update id="updateUserBillLast">
+        update user set bill_last = bill_last + #{count} where id = #{userId}
     </update>
 </mapper>

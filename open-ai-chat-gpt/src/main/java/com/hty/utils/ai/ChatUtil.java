@@ -88,7 +88,7 @@ public class ChatUtil {
         RequestBody body = RequestBody.create(MediaType.parse("application/json"), requestJson);
         //构造请求
         Request request = new Request.Builder()
-                .url(RequestURL.PROXY_CHAT_URL)
+                .url(RequestURL.RENDER_PROXY_CHAT_URL)
                 .method("POST", body)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", "Bearer "+openAIConfig.apiKey)
