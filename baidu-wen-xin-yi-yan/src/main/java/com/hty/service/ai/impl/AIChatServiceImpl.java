@@ -12,8 +12,10 @@ import okhttp3.*;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -84,21 +86,18 @@ public class AIChatServiceImpl implements AIChatService {
         StringBuilder answer = new StringBuilder();
         // 发起异步请求
         Response response = wenxinChatUtils.getERNIEBot40ChatStream(1,messages,true);
-        InputStream inputStream = null;
         ResponseBody responseBody = null;
-        // 以流的方式处理响应内容，输出到控制台
-        byte[] buffer = new byte[2048];
-        int bytesRead;
         try {
+            //TODO:抽取这部分的逻辑，减少重复代码
             responseBody = response.body();
-            if (responseBody != null) {
-                inputStream = responseBody.byteStream();
-            }
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(responseBody.byteStream()));
+            String str;
+            while ((str = reader.readLine()) != null) {
                 // 在控制台输出每个数据块
-                System.out.write(buffer, 0, bytesRead);
+                System.out.println(str);
                 //将结果汇总起来  这里new出来的字符串中是包含id、token消耗数量等信息的JSON字符串，需要做信息统计的话可以在这里进行拓展
-                answer.append(new String(buffer, 0, bytesRead));
+                answer.append(str);
+                reader.readLine();
             }
         } catch (IOException e) {
             //如果出现了异常就应该将问题也从对话历史中删除
@@ -106,14 +105,13 @@ public class AIChatServiceImpl implements AIChatService {
             log.error("InputStream流式读取出错 => {}",e.getMessage());
             throw new RuntimeException(e);
         }finally {
-            wenxinChatUtils.closeStream(response,responseBody,inputStream);
+            wenxinChatUtils.closeStream(response,responseBody,null);
         }
 
         //将回复的内容添加到消息中
         StringBuilder assistantAnswer = new StringBuilder();
         String[] answerArray = answer.toString().split("data: ");
         for (int i=1;i<answerArray.length;++i) {
-            answerArray[i] = answerArray[i].substring(0,answerArray[i].length() - 2);
             assistantAnswer.append(JSON.parseObject(answerArray[i]).get("result"));
         }
         wenxinChatUtils.recordChatHistory(messages,"assistant",assistantAnswer.toString());
